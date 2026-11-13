@@ -265,7 +265,7 @@ def test_landing_town_cards_match_the_data():
 
 
 def test_landing_look_and_copy():
-    for text in ("Plus+Jakarta+Sans", "assets/punggol.jpg", "assets/toapayoh.jpg", "Less lease, less CPF:",
+    for text in ("Plus+Jakarta+Sans", 'data-photo="punggol.jpg"', 'data-photo="toapayoh.jpg"', "Less lease, less CPF:",
                  "what buyers need to know.", "Have more questions? Ask Runway.", "not from the AI"):
         assert text in GAME, text
     for text in ("IBM Plex", "--rust", "Special:FilePath", "One flat, two buyers", "ordinary way"):
@@ -274,8 +274,16 @@ def test_landing_look_and_copy():
 
 
 def test_landing_photos_are_local_jpegs():
+    """The home photos are embedded in the page (the host does not serve image files from the component folder);
+    the embedded copy must be the file in runway_game/assets, byte for byte."""
+    import base64
+
     for name in ("punggol.jpg", "toapayoh.jpg"):
-        assert (ROOT / "runway_game" / "assets" / name).read_bytes()[:2] == b"\xff\xd8", name
+        data = (ROOT / "runway_game" / "assets" / name).read_bytes()
+        assert data[:2] == b"\xff\xd8", name
+        embedded = re.search(rf'data-photo="{name}" src="data:image/jpeg;base64,([A-Za-z0-9+/=]+)"', GAME)
+        assert embedded and base64.b64decode(embedded.group(1)) == data, name
+    assert not re.search(r'src="assets/[^"]+\.(jpg|jpeg|png|webp)"', GAME)
 
 
 def test_hdb_loan_limit_line_matches_hdb_and_the_rules():
