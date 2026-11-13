@@ -789,7 +789,9 @@ input{caret-color:var(--green)}
 
 /* fields */
 .field{display:flex;flex-direction:column;gap:6px}
-.field>span{font:700 .667rem var(--font-ui);letter-spacing:var(--track-small);color:var(--ink-2)}
+.field>span,.field>label>span{font:700 .667rem var(--font-ui);letter-spacing:var(--track-small);color:var(--ink-2)}
+.pwbox{position:relative}.pwbox .inp{padding-right:76px}
+.pweye{position:absolute;right:4px;top:50%;transform:translateY(-50%);min-height:44px;min-width:64px;border:0;background:none;border-radius:var(--radius-btn);font:700 .833rem var(--font-ui);color:var(--green);cursor:pointer}
 .inp{border:0;border-radius:var(--radius-btn);padding:0 16px;min-height:50px;background:var(--field);width:100%;font:400 .944rem var(--font-ui);color:var(--ink)}
 .inp::placeholder{color:var(--ink-2);opacity:1}
 select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weight:700;color:var(--green)}
@@ -1796,7 +1798,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
         <h2 id="loginTitle">Log in</h2>
         <p class="small" style="margin:0">For reviewers. Everyone else can use Runway without an account.</p>
         <label class="field"><span>Username</span><input class="inp" id="u" autocomplete="username" autocapitalize="none" required></label>
-        <label class="field"><span>Password</span><input class="inp" id="pw" type="password" autocomplete="current-password" required></label>
+        <div class="field"><label for="pw"><span>Password</span></label><div class="pwbox"><input class="inp" id="pw" type="password" autocomplete="current-password" required><button type="button" class="pweye" id="pwEye" aria-pressed="false" aria-controls="pw">Show</button></div></div>
         <p class="err" id="loginErr" role="alert" hidden>That username and password don't match.</p>
         <button class="btn primary" type="submit" id="loginBtn">Log in</button>
       </form>
@@ -2044,7 +2046,10 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   const overlay = document.getElementById('loginOverlay');
   function loginButtons(){ const b = document.querySelector('#lLoginBtn .nl'); if(b) b.textContent = RW.me.user ? 'Log out' : 'Log in'; if(RW.navTitles) RW.navTitles(); }
   RW.openLogin = () => { overlay.hidden = false; document.getElementById('loginErr').hidden = true; setTimeout(() => document.getElementById('u').focus(), 30); };
-  const closeLogin = () => { overlay.hidden = true; };
+  const pw = document.getElementById('pw'), eye = document.getElementById('pwEye');
+  const maskPw = show => { pw.type = show ? 'text' : 'password'; eye.textContent = show ? 'Hide' : 'Show'; eye.setAttribute('aria-pressed', show); };
+  eye.onclick = () => { maskPw(pw.type === 'password'); pw.focus(); };
+  const closeLogin = () => { overlay.hidden = true; maskPw(false); };
   document.querySelectorAll('[data-login]').forEach(b => b.onclick = () => RW.me.user ? RW.logout() : RW.openLogin());
   document.getElementById('loginClose').onclick = closeLogin;
   overlay.addEventListener('click', e => { if(e.target === overlay) closeLogin(); });
