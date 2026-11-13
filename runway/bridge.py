@@ -34,7 +34,7 @@ LOCKS_LOCK = threading.Lock()  # each session runs in its own thread
 NUMBERS_NOTE = "Numbers from Runway's calculator, not the AI."
 FEEDBACK_FILE = Path(__file__).resolve().parent.parent / "data" / "feedback.jsonl"
 MAX_FEEDBACK_QUESTION = 300
-MAX_TTS = 60  # per session, so a script can't use the server as a free speech service
+MAX_TTS = 150  # per session, so a script can't use the server as a free speech service
 MAX_VOTES = 30  # per session; a changed vote counts again
 # The facts the interface's flatFacts() sends; the explanation template needs the first five.
 REQUIRED_FACTS = {"Remaining lease (years)", "Youngest buyer is this old when lease ends", "Years short of age 95",
