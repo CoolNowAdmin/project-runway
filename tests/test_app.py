@@ -532,7 +532,7 @@ def test_a_redeploy_rebuilds_the_cached_ai(monkeypatch):
     assert not at.exception and seen == ["zh"]
     assert at.session_state["replies"][-1]["value"]["text"] == "ok"
     app = (ROOT / "app.py").read_text()
-    assert "llm(CODE)" in app and "retriever(CODE)" in app and 'glob("*.py")' in app
+    assert "llm(CODE, key_id())" in app and "retriever(CODE)" in app and 'glob("*.py")' in app
 
 
 def test_ask_never_shows_an_empty_answer():

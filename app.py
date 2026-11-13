@@ -7,6 +7,7 @@ from the official documents (runway/bridge.py).
 Run locally with:  streamlit run app.py
 """
 
+import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -14,6 +15,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from runway.bridge import PAGES, handle
+from runway.config import get_setting
 from runway.content import load_content
 from runway.game_data import load_game_data
 from runway.llm import LLM
@@ -57,8 +59,15 @@ CODE = max(p.stat().st_mtime for p in (HERE / "runway").glob("*.py"))
 
 
 @st.cache_resource(show_spinner=False, max_entries=1)
-def llm(code: float) -> LLM:
+def llm(code: float, key: str) -> LLM:
     return LLM()
+
+
+def key_id() -> str:
+    """Saving a new API key in Secrets doesn't restart the process, so a client built without one would stay "offline".
+    The key's hash is part of the cache key: adding or changing the key builds a new client (the key itself isn't cached)."""
+    key = get_setting("ANTHROPIC_API_KEY") or ""
+    return hashlib.sha256(key.encode()).hexdigest()[:12] if key else ""
 
 
 @st.cache_resource(show_spinner=False, max_entries=1)
@@ -117,7 +126,7 @@ if isinstance(msg, dict) and isinstance(msg.get("id"), str) and len(msg["id"]) <
         handled.clear()
     handled.add(msg["id"])
     try:
-        reply = handle(msg, state, configured_users(), llm(CODE), retriever(CODE))
+        reply = handle(msg, state, configured_users(), llm(CODE, key_id()), retriever(CODE))
     except Exception as exc:  # always answer: without a reply the interface waits 90 s
         print(f"[runway] {str(msg.get('type'))[:40]!r} failed: {type(exc).__name__}: {exc}")
         reply = {"ok": False, "error": "Something went wrong. Try again."}
