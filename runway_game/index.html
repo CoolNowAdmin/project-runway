@@ -3249,8 +3249,9 @@ const PAGEKEY={about:()=>'about.'+(FULL()?'full':'brief'), method:()=>'method.'+
 const PAGEBUILT={about:()=>aboutHtml(), method:()=>methodHtml(), privacy:()=>privacyHtml(), terms:()=>termsHtml()};
 const edited=k=>((RW.content||{}).pages||{})[k];
 const pageHtml=s=>{const o=edited(PAGEKEY[s]()); return o?`<div class="doctext">${o}</div>`:PAGEBUILT[s]();};  // o was cleaned by the server
-const savedMsg=r=>r.saved==='github'?'Saved. Visitors see it now, and it is kept in GitHub.'
-  :`Saved. Visitors see it now${r.warn?'. '+r.warn:', until the app restarts (no GitHub token is set).'}`;
+const KEPT={database:'kept in the database',github:'kept in GitHub'};  // runway/content.py save()
+const keptMsg=r=>KEPT[r.saved]?`It is ${KEPT[r.saved]}.${r.warn?' '+r.warn:''}`:(r.warn||'No database or GitHub token is set, so it lasts until the app restarts.');
+const savedMsg=r=>`Saved. Visitors see it now. ${keptMsg(r)}`;
 const takeContent=r=>{RW.content=r.content; RW.contentJson=JSON.stringify(r.content); RW.applyContent();};
 RW.onContent=()=>{if(!$('#scrSub').hidden&&!S.editing&&!$('#sheetHost .sheet')) renderSub();};
 function editBar(s){
@@ -3358,7 +3359,7 @@ function openUpload(){
         go.disabled=false;
         if(!r||!r.ok){msg.textContent=(r&&r.error)||'Not uploaded. Try again.'; return;}
         msg.textContent=`${r.replaced?'Replaced':'Added'}: ${r.words.toLocaleString('en-SG')} words. Ask Runway searches it from the next question. `
-          +(r.saved==='github'?'Kept in GitHub.':(r.warn||'No GitHub token is set, so it lasts until the app restarts.'));
+          +keptMsg(r)+(r.original?' The original file is in R2.':'');
         $('#upFile').value=''; ['upTitle','upPub','upUrl'].forEach(id=>$('#'+id).value=''); list();
       }).catch(()=>{msg.textContent='Runway did not respond. The file may be too big; try a smaller one.'; go.disabled=false;});
       rd.readAsDataURL(f);
@@ -3513,7 +3514,7 @@ function privacyHtml(){
   <h2>Answer feedback</h2><ul>
     <li>Pressing Helpful or Not helpful under an answer sends Runway's server your vote, the answer language and the question you asked. A vote never uses the AI.</li>
     <li>The server checks the question again. If it has an NRIC number, a Singapore phone number or an email address, or is a question Runway declines, the question is dropped and only the vote and the language are kept.</li>
-    <li>Each vote is kept as one line: the vote, the answer language, the question (if kept) and the date, plus empty fields the team fills in to turn it into a test question. No name, login, address or time of day. The line goes to the server log, and to a file on the server when one can be written. The team reads these lines to find questions Runway answers badly.</li>
+    <li>Each vote is kept as one line: the vote, the answer language, the question (if kept) and the date, plus empty fields the team fills in to turn it into a test question. No name, login, address or time of day. The line goes to the server log, to a file on the server when one can be written, and to Runway's database (Neon, a Postgres service) when one is set up. The team reads these lines to find questions Runway answers badly.</li>
     <li>Changing your vote records a new line. One visit can record up to 30 votes.</li></ul>
   <h2>Documents</h2><ul>
     <li>Your file is read in your browser. Nothing from it, not even its name, goes to Runway's server, and nothing is kept after you leave. PDFs are read with PDF.js, loaded from cdnjs.cloudflare.com; your file does not go there.</li>
@@ -3527,7 +3528,7 @@ function privacyHtml(){
   <h2>Price check on a flat</h2><ul>
     <li>When you open a flat on the map, the page sends Runway's server that sale's town, street, flat type, floor area, remaining lease and price, all from the public sales on the map, to compare it with similar sales. Nothing you typed goes with it: not your age, not your CPF.</li></ul>
   <h2>What the server keeps</h2><ul>
-    <li>Your session, in memory, while the page is open: the replies sent to you, whether you are logged in and whether the map data was sent. No database; the session is gone when you reload or close the page.</li>
+    <li>Your session, in memory, while the page is open: the replies sent to you, whether you are logged in and whether the map data was sent. The session is never put in a database; it is gone when you reload or close the page. The database keeps only answer votes (above) and the reviewers' page edits and uploaded documents.</li>
     <li>Runway's code writes to the server log when something fails (the kind of request and the error) and when you vote on an answer (the line described under Answer feedback). It does not write your other questions or your files to the log.</li></ul>
   <h2>Cookies and browser storage</h2><ul>
     <li>Runway's own code sets no cookies and keeps exactly one thing in your browser's local storage: your Dark mode choice, under the name runway-theme, which never leaves your device. Your details, shortlist and chat live only in the open page and are lost on reload, so there is no cookie banner.</li>

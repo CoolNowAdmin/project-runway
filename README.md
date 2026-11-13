@@ -71,8 +71,22 @@ A logged-in reviewer sees a green **Reviewer view** pill on every screen, and a 
 
 The server checks the reviewer login for every change (`runway/content.py`) and cleans edited page HTML to plain
 formatting and links. A change takes effect at once. Streamlit Community Cloud wipes the app's disk on every redeploy,
-so to keep changes, add a GitHub token to the Secrets: the app then commits each one (`data/content.json`,
-`data/corpus/<slug>.md`) to the repo.
+so Runway keeps changes elsewhere (`runway/store.py`), in this order:
+
+1. **Neon (Postgres)**, when `DATABASE_URL` is set: page edits, the FAQ, uploaded documents and answer votes. The app
+   creates its two tables (`runway_files`, `runway_feedback`) itself and puts the files back after every restart.
+2. **Cloudflare R2**, when the four `R2_*` settings are set: the original file of each upload (`uploads/<slug>/...`).
+3. Without Neon, a **GitHub token** commits each change (`data/content.json`, `data/corpus/<slug>.md`) to the repo.
+
+```toml
+DATABASE_URL = "postgresql://...neon.tech/neondb?sslmode=require"   # Neon: Connect > connection string
+R2_ACCOUNT_ID = "..."            # Cloudflare: R2 > API tokens (Object Read & Write, this bucket only)
+R2_ACCESS_KEY_ID = "..."
+R2_SECRET_ACCESS_KEY = "..."
+R2_BUCKET = "runway-uploads"
+```
+
+Or, instead of Neon, a GitHub token:
 
 ```toml
 GITHUB_TOKEN = "github_pat_..."   # fine-grained token: this repository only, Contents: Read and write

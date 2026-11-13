@@ -6,6 +6,7 @@ import json
 import pytest
 
 import runway.content as content
+import runway.store as store
 from runway.auth import hash_password
 from runway.bridge import handle
 from runway.rag import Retriever, load_chunks
@@ -21,6 +22,9 @@ def runtime(tmp_path, monkeypatch):
     monkeypatch.setattr(content, "RUNTIME_CONTENT", tmp_path / "content.json")
     monkeypatch.setattr(content, "CONTENT_FILE", tmp_path / "committed.json")
     monkeypatch.setattr(content, "get_setting", lambda name, default=None: default)
+    monkeypatch.setattr(store, "db_enabled", lambda: False)
+    monkeypatch.setattr(store, "r2_enabled", lambda: False)
+    content.restore.cache_clear()
     return tmp_path
 
 
@@ -139,3 +143,57 @@ def test_failed_commit_keeps_the_local_change(monkeypatch):
     r = send("save_page", reviewer(), key="privacy", html="<p>P</p>")
     assert r["ok"] and r["saved"] == "local" and "restarts" in r["warn"]
     assert content.load_content()["pages"]["privacy"] == "<p>P</p>"
+
+
+@pytest.fixture
+def neon(monkeypatch):
+    """A stand-in for Neon: a dict of path -> bytes, and a list of votes."""
+    db = {"files": {}, "votes": []}
+    monkeypatch.setattr(store, "db_enabled", lambda: True)
+    monkeypatch.setattr(store, "put_file", lambda path, body: db["files"].__setitem__(path, body))
+    monkeypatch.setattr(store, "all_files", lambda: dict(db["files"]))
+    monkeypatch.setattr(store, "add_vote", lambda vote: db["votes"].append(vote))
+    return db
+
+
+def test_edits_and_uploads_go_to_the_database_and_come_back_after_a_restart(neon, runtime):
+    r = send("save_page", reviewer(), key="about.brief", html="<p>Kept</p>")
+    assert r["saved"] == "database" and b"Kept" in neon["files"]["data/content.json"]
+    up = send("upload_doc", reviewer(), name="n.md", data=base64.b64encode(WORDS.encode()).decode(), title="Neon doc")
+    assert up["saved"] == "database" and "data/corpus/neon-doc.md" in neon["files"]
+    neon["files"]["../../etc/x"] = b"never written"  # only Runway's own paths are restored
+    for f in (runtime / "corpus").glob("*"):  # a redeploy wipes the disk
+        f.unlink()
+    (runtime / "content.json").unlink()
+    content.restore.cache_clear()
+    assert content.load_content()["pages"]["about.brief"] == "<p>Kept</p>"
+    assert "neon-doc" in content.corpus_files() and content.restore() == 2
+
+
+def test_a_database_failure_keeps_the_change_here(neon, monkeypatch):
+    def down(path, body):
+        raise OSError("neon down")
+
+    monkeypatch.setattr(store, "put_file", down)
+    r = send("save_page", reviewer(), key="terms", html="<p>T</p>")
+    assert r["ok"] and r["saved"] == "local" and r["warn"].startswith("The database didn't accept it")
+    assert content.load_content()["pages"]["terms"] == "<p>T</p>"
+
+
+def test_votes_go_to_the_database(neon, monkeypatch, tmp_path):
+    import runway.bridge
+
+    monkeypatch.setattr(runway.bridge, "FEEDBACK_FILE", tmp_path / "f.jsonl")
+    assert send("feedback", {}, rating="up", q="How long can my loan be?")["ok"]
+    assert neon["votes"][0]["rating"] == "up" and neon["votes"][0]["question"] == "How long can my loan be?"
+
+
+def test_upload_keeps_the_original_in_r2(monkeypatch):
+    sent = []
+    monkeypatch.setattr(store, "r2_enabled", lambda: True)
+    monkeypatch.setattr(store, "put_original", lambda key, body, ctype: sent.append((key, body, ctype)))
+    raw = f"<main><p>{WORDS}</p></main>".encode()
+    r = send("upload_doc", reviewer(), name="Page.HTML", data=base64.b64encode(raw).decode(), title="R2 page")
+    (key, body, ctype), = sent
+    assert key.startswith("uploads/r2-page/") and key.endswith(".html") and body == raw and ctype == "text/html"
+    assert r["original"] == key

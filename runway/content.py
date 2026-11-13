@@ -3,6 +3,7 @@
 Each change is written to data/runtime/ at once, so it takes effect without a restart, and, when GITHUB_TOKEN is
 set, committed to the repo (data/content.json, data/corpus/<slug>.md), so it survives the redeploys that wipe the
 app's disk. data/runtime/ is gitignored: a redeploy pulls the committed copy without clashing with it.
+With DATABASE_URL set, Neon keeps them instead of GitHub (runway/store.py), and R2 keeps each upload's original file.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 
+from runway import store
 from runway.config import get_setting
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -32,6 +34,8 @@ PAGE_KEYS = {"about.full", "about.brief", "method.full", "method.brief", "privac
 MAX_PAGE_CHARS = 100_000
 MAX_FAQ = 100
 MAX_UPLOAD_BYTES = 6 * 1024 * 1024
+CONTENT_TYPES = {".pdf": "application/pdf", ".html": "text/html", ".htm": "text/html", ".md": "text/markdown",
+                 ".txt": "text/plain"}
 DEFAULT_REPO = "dansyfq/project-runway"
 
 
@@ -62,14 +66,43 @@ def commit(path: str, data: bytes, message: str) -> str:
 
 
 def save(rel_path: str, local: Path, data: bytes, message: str) -> dict:
-    """Write locally (always), then commit. A failed commit keeps the local change and says why."""
+    """Write locally (always), then keep it: Neon when DATABASE_URL is set, else a GitHub commit, else this disk only.
+    A failed keep leaves the local change working and says why."""
     local.parent.mkdir(parents=True, exist_ok=True)
     local.write_bytes(data)
+    where = "the database" if store.db_enabled() else "GitHub"
     try:
+        if store.db_enabled():
+            store.put_file(rel_path, data)
+            return {"saved": "database"}
         return {"saved": commit(rel_path, data, message)}
     except Exception as exc:  # the change already works here; say it won't survive a restart
-        print(f"[runway] GitHub commit of {rel_path} failed: {type(exc).__name__}: {exc}", flush=True)
-        return {"saved": "local", "warn": f"GitHub didn't accept it ({type(exc).__name__}), so it lasts until the app restarts."}
+        print(f"[runway] keeping {rel_path} in {where} failed: {type(exc).__name__}: {exc}", flush=True)
+        return {"saved": "local", "warn": f"{where[0].upper() + where[1:]} didn't accept it ({type(exc).__name__}), so it lasts until the app restarts."}
+
+
+@functools.lru_cache(maxsize=1)
+def restore() -> int:
+    """Once per process: put the database's copies back on this disk, which a redeploy wiped. Returns how many."""
+    if not store.db_enabled():
+        return 0
+    try:
+        files = store.all_files()
+    except Exception as exc:  # Runway still works from the committed files
+        print(f"[runway] restoring from the database failed: {type(exc).__name__}: {exc}", flush=True)
+        return 0
+    n = 0
+    for path, body in files.items():
+        if path == "data/content.json":
+            local = RUNTIME_CONTENT
+        elif re.fullmatch(r"data/corpus/[a-z0-9-]{1,80}\.md", path):
+            local = RUNTIME_CORPUS / Path(path).name
+        else:  # only the paths Runway writes
+            continue
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_bytes(body)
+        n += 1
+    return n
 
 
 # ---------- page text and FAQ ----------
@@ -77,6 +110,7 @@ def save(rel_path: str, local: Path, data: bytes, message: str) -> dict:
 def load_content() -> dict:
     """The newest copy: this disk's (if a change was made since the last start), else the committed one.
     Runs on every message, and the files rarely change: read once per file version, a fresh copy for each caller."""
+    restore()
     stamp = tuple((str(p), p.stat().st_mtime_ns if p.exists() else 0) for p in (RUNTIME_CONTENT, CONTENT_FILE))
     return copy.deepcopy(_read_content(stamp))
 
@@ -235,6 +269,7 @@ def doc_meta(path: Path) -> dict:
 
 def corpus_files() -> dict[str, Path]:
     """Every Ask document by slug; one uploaded on this disk wins over the committed copy."""
+    restore()
     files = {p.stem: p for p in sorted(CORPUS_DIR.glob("*.md"))}
     files.update({p.stem: p for p in sorted(RUNTIME_CORPUS.glob("*.md"))})
     return dict(sorted(files.items()))
@@ -288,7 +323,16 @@ def add_doc(payload: dict) -> dict:
         slug = f"{slug[:55]}-{dt.datetime.now():%H%M%S}"
     header = (f"---\ntitle: {title}\npublisher: {_line(payload.get('publisher'), 80) or 'Reviewer upload'}\n"
               f"url: {_url(payload.get('url'))}\nretrieved: {dt.date.today().isoformat()}\n---\n\n")
-    data = (header + body + "\n").encode("utf-8")
+    doc = (header + body + "\n").encode("utf-8")
     verb = "Replace" if replace else "Add"
-    result = save(f"data/corpus/{slug}.md", RUNTIME_CORPUS / f"{slug}.md", data, f"Reviewer upload: {verb} {slug}")
+    result = save(f"data/corpus/{slug}.md", RUNTIME_CORPUS / f"{slug}.md", doc, f"Reviewer upload: {verb} {slug}")
+    if store.r2_enabled():  # the file as it came, beside the text Runway searches
+        ext = (Path(name).suffix.lower() or ".txt")[:6]
+        key = f"uploads/{slug}/{dt.datetime.now():%Y%m%d-%H%M%S}{ext if re.fullmatch(r'[.][a-z0-9]{1,5}', ext) else '.bin'}"
+        try:
+            store.put_original(key, data, CONTENT_TYPES.get(ext, "application/octet-stream"))
+            result["original"] = key
+        except Exception as exc:  # the document already works; only the original copy is missing
+            print(f"[runway] R2 upload of {key} failed: {type(exc).__name__}: {exc}", flush=True)
+            result["warn"] = (result.get("warn", "") + f" The original file wasn't kept in R2 ({type(exc).__name__}).").strip()
     return {"ok": True, "slug": slug, "replaced": bool(replace), "words": len(body.split()), **result}

@@ -198,6 +198,13 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
                 f.write(line + "\n")
         except OSError:
             pass
+        from runway import store
+
+        if store.db_enabled():  # the lasting record (Neon); the log line above stays the fallback
+            try:
+                store.add_vote(json.loads(line))
+            except Exception as exc:
+                print(f"[runway] saving the vote to the database failed: {type(exc).__name__}: {exc}", flush=True)
         return {"ok": True}
 
     return {"ok": False, "error": f"unknown message: {kind}"}
