@@ -16,5 +16,6 @@ __pycache__/
 venv/
 .DS_Store
 
-# Local preview settings
-.claude/
+# Local Claude Code files (worktrees, preview settings); the shared project settings are committed
+.claude/*
+!.claude/settings.json

@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "dx-harness": {
+      "source": { "source": "github", "repo": "transformteamsg/dx-harness" }
+    }
+  },
+  "enabledPlugins": {
+    "dx-harness@dx-harness": true
+  }
+}
