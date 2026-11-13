@@ -987,6 +987,35 @@ details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:p
 /* the verdict chip: Home's .lvchip soft pairs */
 .vpill{display:inline-block;font:700 .667rem var(--font-ui);border-radius:10px;padding:4px 10px;margin-top:4px}
 .vpill.full{background:var(--ok-soft);color:var(--green-mid)} .vpill.part{background:var(--part-soft);color:var(--part)} .vpill.none{background:var(--no-soft);color:var(--ink-2)}
+/* ---- shortlist compare and print ---- */
+.cmp{display:flex;flex-direction:column;gap:10px;min-width:0}
+.cmppick{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+.cmppick legend{padding:0;margin-bottom:8px}
+.cmppick label{display:flex;gap:12px;align-items:center;min-height:44px;padding:4px 14px;border-radius:var(--radius-chip);background:var(--beige-2);color:var(--ink);cursor:pointer}
+.cmppick input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--green)}
+.cmptbl{font-variant-numeric:tabular-nums}
+.cmptbl caption{text-align:left;font:600 .778rem/1.45 var(--font-ui);color:var(--ink-2);padding:0 4px 8px}
+.cmptbl thead td{background:var(--beige-2);border-bottom:1px solid var(--line)}
+.cmptbl th[scope=col]{white-space:normal;min-width:9.5rem;color:var(--ink)}
+.cmptbl th small{display:block;font-weight:500;color:var(--ink-2)}
+.cmptbl th[scope=row]{white-space:normal;min-width:8rem;border-bottom:1px solid var(--line)}
+.cmpbest{display:inline-block;font:700 .667rem var(--font-ui);border-radius:10px;padding:2px 8px;margin-left:4px;background:var(--ok-soft);color:var(--green-mid)}
+.prsum{display:none}
+@media print{
+  @page{margin:14mm}
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+  body:has(> .prsum) > :not(.prsum){display:none!important}
+  .prsum{display:block;font:10pt/1.4 var(--font-ui)}
+  .prsum,.prsum *{color:#000!important;background:#fff!important;box-shadow:none!important}
+  .prsum h1{font:700 16pt/1.2 var(--font-ui);margin:0 0 6pt}
+  .prsum p{margin:6pt 0}
+  .prsum section{break-inside:avoid;margin:10pt 0}
+  .prsum .scroll{overflow:visible;margin:0}
+  .prsum table{width:100%;font:10pt/1.35 var(--font-ui)}
+  .prsum caption{font:700 11pt var(--font-ui);padding:0 0 4pt}
+  .prsum th,.prsum td{font-size:10pt;padding:3pt 6pt;border-bottom:1px solid #000!important;text-align:left}
+  .prsum .notice{margin-top:10pt;font-size:8.5pt}
+}
 .empty{border-radius:var(--radius-card);padding:24px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;background:var(--beige-2)}
 .empty b{font:700 1.1rem var(--font-display);letter-spacing:var(--track-heading);color:var(--green)}
 .stamps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -2548,12 +2577,35 @@ function toast(msg,stamp){
 
 /* ---------- shortlist ---------- */
 function miniDia(r){const col=r.status==='full'?'var(--ok)':r.status==='part'?'var(--part)':'var(--no)';const h=r.status==='none'?0:40*r.ratio;return `<svg viewBox="0 0 52 52" width="52" height="52" aria-hidden="true"><defs><clipPath id="m${Math.random().toString(36).slice(2,7)}x"><rect/></clipPath></defs><path d="M26 6 46 26 26 46 6 26Z" fill="var(--snow)" stroke="${col}" stroke-width="3"/><clipPath id="cl"></clipPath><path d="M26 6 46 26 26 46 6 26Z" fill="${col}" style="clip-path:inset(${(40-h)/52*100+ (6/52*100)}% 0 0 0)"/></svg>`;}
+// Compare rows: one row per figure, one plain-text cell per flat; best[i] marks the cell labelled "Best" (only when the flats differ).
+function compareRows(fs){
+  const rs=fs.map(f=>calc(f.price,f.lease));
+  const row=(h,v,txt,pick)=>{const t=pick&&new Set(v).size>1?(pick==='hi'?Math.max(...v):Math.min(...v)):null;return {h,v,cells:v.map(txt),best:v.map(x=>x===t)};};
+  const none=x=>x?null:'No HDB loan';
+  return [
+    row('Price',fs.map(f=>f.price),x=>exact(x),'lo'),
+    row('Price per sqm',fs.map(f=>Math.round(f.price/f.sqm)),x=>exact(x),'lo'),
+    row('Flat type and floor area',fs.map(f=>+f.sqm),(x,i)=>`${fs[i].ft} · ${x} sqm`,'hi'),
+    row('Lease left',fs.map(f=>+f.lease.toFixed(1)),x=>`${x} years`,'hi'),
+    row('Youngest buyer’s age when the lease ends',rs.map(r=>Math.floor(r.end)),x=>`${x}`,'hi'),
+    row('CPF verdict',rs.map(r=>r.ratio),(x,i)=>VTXT[rs[i].status]+(rs[i].status==='part'?` (${Math.round(x*100)}%)`:''),'hi'),
+    row('CPF you can use',rs.map(r=>r.cap),x=>exact(x)),
+    row('Cash on top of CPF',rs.map(r=>r.cashLife),x=>exact(x),'lo'),
+    row('HDB loan limit',rs.map(r=>r.loan),(x,i)=>none(x)||`${exact(x)} (${Math.round(rs[i].ltv*100)}% of the price)`),
+    row('Loan length',rs.map(r=>r.tenure),x=>none(x)||`${+x.toFixed(1)} years`),
+    row('Monthly instalment at 2.6%',rs.map(r=>r.monthly),x=>none(x)||exact(x))
+  ];
+}
+/* end compareRows */
+const cmpTable=(fs,cap)=>`<div class="scroll" role="region" tabindex="0" aria-label="${esc(cap)}"><table class="tbl cmptbl"><caption>${esc(cap)}</caption><thead><tr><td></td>${fs.map(f=>`<th scope="col">Blk ${esc(f.blk)} ${esc(f.st)}<small>${esc(TBY[f.town].name)} · sold ${esc(f.m)}</small></th>`).join('')}</tr></thead><tbody>${compareRows(fs).map(r=>`<tr><th scope="row">${esc(r.h)}</th>${r.cells.map((c,i)=>`<td>${esc(c)}${r.best[i]?' <b class="cmpbest">Best</b>':''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const CMP=new Set();  // flats ticked to compare: in memory only, never stored
 function renderList(){
   const n=S.stamps.size;
   const items = S.list.map((f,i)=>{const r=calc(f.price,f.lease);return `<button class="fcard" type="button" data-li="${i}">${miniDia(r)}<span><b>Blk ${esc(f.blk)} ${esc(f.st)}</b><small>${esc(TBY[f.town].name)} · ${Math.floor(f.lease)} yrs left</small><br><span class="vpill ${r.status}">${VTXT[r.status]}</span></span><span class="pr">${money(f.price)}<br><small class="small">${r.cashLife>0?'+'+money(r.cashLife)+' cash':'no extra cash'}</small></span></button>`;}).join('');
   $('#listBody').innerHTML = `${crumbs('Shortlist')}
     <div class="scr-h"><h1>Your shortlist</h1><p class="ui" style="font-size:.9rem">Worked out for a youngest buyer aged ${S.age}.</p></div>
-    ${S.list.length?`<div class="flatlist" data-st="st.dataframe">${items}</div><button class="btn ghost sm" type="button" id="expBtn" data-st="st.download_button">Save shortlist as a file</button>`
+    ${S.list.length?`<div class="flatlist" data-st="st.dataframe">${items}</div><button class="btn ghost sm" type="button" id="expBtn" data-st="st.download_button">Save shortlist as a file</button><button class="btn ghost sm" type="button" id="prBtn">Print summary</button>
+      <section class="cmp" aria-labelledby="cmpH"><h2 id="cmpH" style="font-size:1.3rem">Compare flats</h2>${S.list.length<2?'<p class="small">Keep one more flat from the map to compare them side by side.</p>':`<fieldset class="cmppick"><legend class="small">Tick two or three flats.</legend>${S.list.map((f,i)=>`<label><input type="checkbox" data-ci="${i}"${CMP.has(f)?' checked':''}><span>Blk ${esc(f.blk)} ${esc(f.st)}, ${esc(TBY[f.town].name)}</span></label>`).join('')}</fieldset><p class="small" id="cmpMsg" role="status"></p><div id="cmpOut"></div>`}</section>`
       :`<div class="empty"><svg viewBox="0 0 52 52" width="52" height="52"><path d="M26 6 46 26 26 46 6 26Z" fill="none" stroke="var(--beige-deep)" stroke-width="3"/></svg><b class="ui">Nothing here yet</b><p class="small">Check a flat on the map, then tap Keep in shortlist.</p><button class="btn primary" type="button" data-gomap>Go to the map</button></div>`}
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:1.3rem">Town stamps</h2><span class="label">${n} of ${TOWNS.length}</span></div>
@@ -2567,6 +2619,27 @@ function renderList(){
     const rows=S.list.map(f=>{const r=calc(f.price,f.lease);return [f.blk,f.st,TBY[f.town].name,f.ft,f.sr,Math.round(f.price),f.lease.toFixed(1),f.m,VTXT[r.status],Math.round(r.cap),Math.round(r.cashLife),S.age];});
     const csv=[head].concat(rows).map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})); a.download='runway_shortlist.csv'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  const drawCmp=msg=>{
+    const fs=S.list.filter(f=>CMP.has(f));
+    $('#cmpMsg').textContent=msg||(fs.length>1?`Comparing ${fs.length} flats. Best marks the better figure in a row.`:fs.length?'Tick one more flat to compare.':'Tick two or three flats to see them side by side.');
+    $('#cmpOut').innerHTML=fs.length>1?cmpTable(fs,`Your flats side by side, for a youngest buyer aged ${S.age}`):'';
+  };
+  $$('[data-ci]').forEach(c=>c.onchange=()=>{
+    const f=S.list[+c.dataset.ci];
+    if(c.checked&&CMP.size>=3){c.checked=false;drawCmp('You can compare up to three flats. Untick one to add another.');return;}
+    c.checked?CMP.add(f):CMP.delete(f); drawCmp();
+  });
+  if($('#cmpOut')) drawCmp();
+  const pr=$('#prBtn'); if(pr) pr.onclick=()=>{
+    $$('.prsum').forEach(x=>x.remove());
+    const d=document.createElement('div'); d.className='prsum';
+    d.innerHTML=`<h1>Runway shortlist summary</h1><p>Printed ${new Date().toLocaleDateString('en-SG',{day:'numeric',month:'long',year:'numeric'})}. Worked out for a youngest buyer aged ${S.age}, an average age of ${S.avg} across all buyers, and CPF Ordinary Account savings ${S.oaSet?'of '+exact(S.oa):'not given'}. Prices are resale sales from ${esc(SPAN)}.</p>
+      ${S.list.map(f=>`<section>${cmpTable([f],`Blk ${f.blk} ${f.st}, ${TBY[f.town].name}`)}</section>`).join('')}
+      <p><b>These are Runway's calculator figures, not advice.</b> Confirm your CPF use and loan with CPF Board, HDB and your bank before you commit.</p><div class="notice">${NOTICE}</div>`;
+    document.body.appendChild(d);
+    addEventListener('afterprint',()=>d.remove(),{once:true});
+    window.print();
   };
 }
 
