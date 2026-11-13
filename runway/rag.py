@@ -105,8 +105,14 @@ def tokenize(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
+# Word pairs that mean more together than apart: "how long" alone is about a letter or a lease; with "loan", its term.
+PAIRS = {("long", "loan"): "repayment period"}
+
+
 def expand_query(query: str) -> str:
-    extra = [SYNONYMS[w] for w in tokenize(query) if w in SYNONYMS]
+    words = tokenize(query)
+    extra = [SYNONYMS[w] for w in words if w in SYNONYMS]
+    extra += [v for pair, v in PAIRS.items() if set(pair) <= set(words)]
     return " ".join([query, *extra])
 
 

@@ -34,6 +34,7 @@ def test_window_overlaps():
         ("How much CPF can I use if the lease does not cover the youngest buyer to age 95?", "cpf-faq-lease"),
         ("What is the loan-to-value limit for an HDB housing loan?", "hdb-"),
         ("How long is the HFE letter valid?", "hdb-hfe"),
+        ("How long can my loan be?", "hdb-housing-loan-from-hdb"),  # one of the Ask page's own suggestions
         ("Proximity Housing Grant living within 4km of parents", "hdb-proximity"),
         ("Can I pay cash over valuation with CPF?", "cpf-guide-buying-financing"),
         ("buyer's stamp duty rates", "iras-"),
