@@ -234,3 +234,61 @@ def test_public_data_failure_is_reported_not_raised(bot, index, monkeypatch):
     monkeypatch.setattr(runway.bridge, "town_photo", boom)
     assert send("towns", {}, bot, index) == {"ok": False, "error": "OSError: disk gone"}
     assert send("town_photo", {}, bot, index, id="BEDOK") == {"ok": False, "error": "OSError: disk gone"}
+
+
+SCREEN_PATHS = ["", "map", "shortlist", "trends", "ask", "more", "details", "text-size", "about", "how-it-works", "sources",
+                "privacy", "terms", "faq", "case-study"]
+
+
+def test_pages_are_the_agreed_paths():
+    from runway.bridge import PAGES
+
+    assert list(PAGES) == SCREEN_PATHS
+
+
+@pytest.mark.parametrize("page", SCREEN_PATHS)
+def test_nav_accepts_every_page(bot, index, page):
+    assert send("nav", {}, bot, index, page=page) == {"ok": True, "page": page}
+
+
+@pytest.mark.parametrize("page", ["../x", "MAP", "map/", "/map", "ask?q=nric", "x", {"a": 1}, None, 3, ["map"]])
+def test_nav_rejects_anything_else(bot, index, page):
+    """The browser is untrusted: only the fixed page names can reach st.switch_page."""
+    assert send("nav", {}, bot, index, page=page) == {"ok": False, "error": "unknown page"}
+    assert handle({"id": "x", "type": "nav", "payload": "map"}, {}, USERS, bot, index)["ok"] is False
+
+
+def test_towns_reply_carries_the_sales_months(bot, index):
+    assert send("towns", {}, bot, index)["months"] == ["2026-07", "2026-08", "2026-09"]
+
+
+@pytest.mark.parametrize("kind", [["login"], {"a": 1}, None, 5])
+def test_a_message_type_that_is_not_text_is_refused(bot, index, kind):
+    assert handle({"id": "x", "type": kind, "payload": {}}, {}, USERS, bot, index) == {"ok": False, "error": "bad message"}
+
+
+def test_a_declined_question_spends_nothing_on_search(bot, index, monkeypatch):
+    """The hourly AI budget is shared by every visitor; an off-topic question must not use any of it."""
+    def no_search(*_, **__):
+        raise AssertionError("searched for a question that is declined")
+
+    monkeypatch.setattr(index, "search", no_search)
+    reply = send("ask", {}, bot, index, q="Tell me a joke about cats")
+    assert reply["blocked"] and reply["sources"] == []
+
+
+def test_login_counts_the_attempt_before_checking_the_password(bot, index, monkeypatch):
+    """Parallel guesses must not all see a count of zero: the attempt is recorded before the slow hash."""
+    import runway.bridge
+
+    seen = []
+    monkeypatch.setattr(runway.bridge, "check_login", lambda *_: seen.append(runway.bridge.LOCKS.get("reviewer")) or False)
+    send("login", {}, bot, index, u="reviewer", p="nope")
+    assert seen == [(1, 0.0)]
+
+
+def test_a_huge_username_is_not_kept(bot, index):
+    import runway.bridge
+
+    send("login", {}, bot, index, u="a" * 100_000, p="nope")
+    assert max(map(len, runway.bridge.LOCKS)) <= 64

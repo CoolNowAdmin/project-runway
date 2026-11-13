@@ -9,6 +9,8 @@ borderColor = "#E2D9C8"
 
 [server]
 headless = true
+# The largest message is the ~3 MB map data; the default of 200 MB lets one visitor fill the server's memory.
+maxMessageSize = 10
 
 [browser]
 gatherUsageStats = false

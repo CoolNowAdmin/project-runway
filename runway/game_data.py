@@ -49,6 +49,13 @@ def load_towns() -> list[dict]:
     return sorted(towns, key=lambda t: t["name"])
 
 
+@functools.lru_cache(maxsize=1)
+def recent_months() -> list[str]:
+    """The months of the map's recent sales ("2026-07", ...), so the page can label the window from the data."""
+    m = json.loads((GAME_DIR / "map.json").read_text())
+    return sorted({x[0] for r in m["recent"] for x in r["x"]})
+
+
 def load_game_data() -> dict:
     return {
         "M": json.loads((GAME_DIR / "map.json").read_text()),

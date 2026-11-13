@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+import unicodedata
 from collections import deque
 from dataclasses import dataclass
 
@@ -29,7 +30,12 @@ DECLINE_INJECTION = (
     "in my library. I can't change how I work."
 )
 DECLINE_PERSONAL = "Please remove your NRIC, phone number or email. Runway never needs them."
-PERSONAL_PATTERNS = [r"\b[stfgm]\d{7}[a-z]\b", r"\b[689]\d{3}\s?\d{4}\b", r"[\w.+-]+@[\w-]+\.[\w.]+"]
+# Matched after Unicode normalisation (full-width digits and @), so the same patterns work in the interface (personal()).
+PERSONAL_PATTERNS = [
+    r"\b[stfgm][\s-]?\d{7}[\s-]?[a-z]\b",  # NRIC/FIN, also written with spaces or dashes
+    r"(?:^|\D)(?:\+?65[\s-]?)?[689]\d{3}[\s-]?\d{4}(?!\d)",  # Singapore phone number, with or without +65
+    r"[\w.+-]{1,64}@[\w-]+\.[\w.]+",  # email; the length cap keeps a very long token from stalling the match
+]
 DECLINE_OFF_TOPIC = (
     "I only cover buying an HDB resale flat: CPF usage, the lease-to-age-95 rule, HDB loans, grants and "
     "the resale process. Try asking about one of those."
@@ -123,7 +129,7 @@ def spend_ai_call() -> None:
 
 
 def screen_question(question: str) -> str | None:
-    q = question.lower()
+    q = unicodedata.normalize("NFKC", question).lower()
     if any(re.search(p, q) for p in PERSONAL_PATTERNS):
         return "personal"
     if any(re.search(p, q) for p in INJECTION_PATTERNS):

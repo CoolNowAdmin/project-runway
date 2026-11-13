@@ -8,20 +8,26 @@ documents stay server-side.
 
 from __future__ import annotations
 
+import threading
 import time
 import traceback
 from collections.abc import MutableMapping
 
 from runway.auth import check_login
-from runway.game_data import load_towns, town_photo
+from runway.game_data import load_towns, recent_months, town_photo
 from runway.llm import AI_BUSY, INVENTED_FIGURE, LLM, screen_question
 from runway.rag import Chunk, Retriever
-from runway.trends import load_trends
 
+# Every screen's URL path and its name. app.py makes one page per entry; the interface (RW.PATHS) uses the same paths.
+PAGES = {"": "Runway — HDB CPF age-95 checker", "map": "Map", "shortlist": "Shortlist", "trends": "Trends", "ask": "Ask",
+         "more": "More", "details": "Your details", "text-size": "Text size", "about": "About Us",
+         "how-it-works": "How it works", "sources": "Sources and credits", "privacy": "Privacy Policy", "terms": "Terms",
+         "faq": "FAQ", "case-study": "Case study"}
 MAX_ATTEMPTS = 5
 LOCKOUT_SECONDS = 60
 # username -> (failed attempts, locked until). Module-level, so a page reload (a new session) can't reset it.
 LOCKS: dict[str, tuple[int, float]] = {}
+LOCKS_LOCK = threading.Lock()  # each session runs in its own thread
 NUMBERS_NOTE = "Numbers from Runway's calculator, not the AI."
 # The facts the interface's flatFacts() sends; the explanation template needs the first five.
 REQUIRED_FACTS = {"Remaining lease (years)", "Youngest buyer is this old when lease ends", "Years short of age 95",
@@ -32,6 +38,13 @@ WHY_QUERY = {
     True: "lease covers youngest buyer to age 95 CPF up to valuation limit",
     False: "remaining lease does not cover youngest buyer to age 95 pro-rated CPF usage valuation limit loan-to-value",
 }
+
+
+def load_trends() -> dict:
+    """pandas costs ~0.35 s to import, so it loads on the first Trends request, not on every cold start."""
+    from runway.trends import load_trends as load
+
+    return load()
 
 
 def source_view(chunks: list[Chunk]) -> list[dict]:
@@ -57,24 +70,27 @@ def situation_from(age) -> str:
 
 def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, index: Retriever) -> dict:
     kind, payload = msg.get("type"), msg.get("payload")
-    if not isinstance(payload, dict):  # the browser is untrusted
+    if not isinstance(kind, str):  # the browser is untrusted
+        return {"ok": False, "error": "bad message"}
+    if not isinstance(payload, dict):
         payload = {}
 
     if kind == "login":
         if not users:
             return {"ok": False, "error": "Sign-in isn't set up yet. The app owner needs to add accounts."}
-        user = str(payload.get("u", "")).strip().lower()
-        attempts, locked_until = LOCKS.get(user, (0, 0.0))
-        if time.time() < locked_until:
-            return {"ok": False, "error": "Too many attempts. Wait a minute and try again."}
-        if check_login(user, str(payload.get("p", "")), users):
+        user = str(payload.get("u", ""))[:64].strip().lower()
+        with LOCKS_LOCK:  # count the attempt before the slow password check, so parallel guesses can't all read 0
+            attempts, locked_until = LOCKS.get(user, (0, 0.0))
+            if time.time() < locked_until:
+                return {"ok": False, "error": "Too many attempts. Wait a minute and try again."}
+            if len(LOCKS) > 10_000:  # shortcut: forgets all counts if flooded with made-up usernames; fine for one process
+                LOCKS.clear()
+            attempts += 1
+            LOCKS[user] = (0, time.time() + LOCKOUT_SECONDS) if attempts >= MAX_ATTEMPTS else (attempts, 0.0)
+        if check_login(user, str(payload.get("p", ""))[:256], users):
             LOCKS.pop(user, None)
             state.update(user=user, role="full")
             return {"ok": True, "user": user, "role": "full"}
-        if len(LOCKS) > 10_000:  # shortcut: forgets all counts if flooded with made-up usernames; fine for one process
-            LOCKS.clear()
-        attempts += 1
-        LOCKS[user] = (0, time.time() + LOCKOUT_SECONDS) if attempts >= MAX_ATTEMPTS else (attempts, 0.0)
         return {"ok": False, "error": "That username and password don't match."}
 
     if kind == "logout":
@@ -82,6 +98,10 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
         state["role"] = "brief"
         state.get("replies", []).clear()  # in place: the host appends this reply to the same list
         return {"ok": True, "role": "brief"}
+
+    if kind == "nav":  # the address bar follows the screen; only page names, never anything the user typed
+        page = payload.get("page")
+        return {"ok": True, "page": page} if isinstance(page, str) and page in PAGES else {"ok": False, "error": "unknown page"}
 
     if kind == "booted":
         state["data_sent"] = True
@@ -103,7 +123,8 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
                     "note": NUMBERS_NOTE if used_llm else NUMBERS_NOTE + " Written from a fixed template."}
         history = clean_history(payload.get("history"), 6)
         previous = next((h["content"] for h in reversed(history) if h["role"] == "user"), "")
-        sources = index.search(f"{previous} {question}", k=5)
+        # A question that will be declined must not spend an AI call on the search (the hourly budget is shared).
+        sources = [] if screen_question(question) else index.search(f"{previous} {question}", k=5)
         answer = bot.answer(question, sources, history=history, situation=situation_from(payload.get("age")))
         offline = bool(answer.error) or (not bot.available and not answer.blocked)
         why = {INVENTED_FIGURE: "used a figure not in the documents", AI_BUSY: "has reached its limit for this hour",
@@ -117,7 +138,7 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
             if kind == "trends":
                 return {"ok": True, "data": load_trends()}
             if kind == "towns":
-                return {"ok": True, "towns": load_towns()}
+                return {"ok": True, "towns": load_towns(), "months": recent_months()}
             photo = town_photo(payload.get("id"))
             return {"ok": True, **photo} if photo else {"ok": False, "error": "no photo"}
         except Exception as exc:  # say what failed, in the log and on the page, so it can be fixed fast

@@ -22,11 +22,75 @@ needs_node = pytest.mark.skipif(not (shutil.which("node") or Path(NODE).exists()
 DEMO_WORDS = ("demo sign-in", "mockup", "scripted", "try it now", "live app", "runway2026")
 
 
-def test_host_runs_for_a_guest():
+def fake_component(monkeypatch, msg):
+    """Stand in for the interface: record the args of each render, send msg back."""
+    import streamlit.components.v1 as components
+
+    renders = []
+
+    def render(**kw):
+        renders.append(kw)
+        return msg
+
+    monkeypatch.setattr(components, "declare_component", lambda *a, **k: render)
+    return renders
+
+
+def test_host_runs_for_a_guest(monkeypatch):
+    renders = fake_component(monkeypatch, None)
     at = AppTest.from_file("app.py", default_timeout=60)
     at.run()
     assert not at.exception
     assert "user" not in at.session_state
+    assert [r["page"] for r in renders] == [""]  # the home page, and the interface is told so
+
+
+def test_nav_message_switches_the_page(monkeypatch):
+    """The reply is recorded and st.switch_page reruns on /ask; the same component is told the new page."""
+    import streamlit as st
+
+    public = []  # st.switch_page would add a second history entry
+    monkeypatch.setattr(st, "switch_page", public.append)
+    renders = fake_component(monkeypatch, {"id": "n1", "type": "nav", "payload": {"page": "ask"}})
+    at = AppTest.from_file("app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+    assert at.session_state["replies"][-1] == {"id": "n1", "value": {"ok": True, "page": "ask"}}
+    assert [r["page"] for r in renders] == ["", "ask"] and public == []
+    assert {r["key"] for r in renders} == {"runway"}  # one key: the browser keeps the same interface
+
+
+def test_nav_still_switches_if_streamlit_internals_change(monkeypatch):
+    """app.switch_page falls back to st.switch_page when the rerun internals it borrows are gone."""
+    import streamlit.runtime.scriptrunner as scriptrunner
+
+    import streamlit as st
+
+    monkeypatch.delattr(scriptrunner, "RerunData")
+    used, public = [], st.switch_page
+    monkeypatch.setattr(st, "switch_page", lambda page: used.append(page.url_path) or public(page))
+    renders = fake_component(monkeypatch, {"id": "n3", "type": "nav", "payload": {"page": "about"}})
+    at = AppTest.from_file("app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+    assert used == ["about"] and [r["page"] for r in renders] == ["", "about"]
+
+
+def test_unknown_nav_page_stays_put(monkeypatch):
+    renders = fake_component(monkeypatch, {"id": "n2", "type": "nav", "payload": {"page": "../secrets"}})
+    at = AppTest.from_file("app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+    assert at.session_state["replies"][-1] == {"id": "n2", "value": {"ok": False, "error": "unknown page"}}
+    assert {r["page"] for r in renders} == {""}
+
+
+def test_interface_knows_every_page():
+    """The interface's path table (RW.PATHS) has exactly the pages Python serves."""
+    from runway.bridge import PAGES
+
+    table = GAME[GAME.index("RW.PATHS = {"):GAME.index("};", GAME.index("RW.PATHS = {"))]
+    assert re.findall(r"'([^']*)':", table) == list(PAGES)
 
 
 @pytest.mark.parametrize("msg", [["not", "a", "dict"], "text", {"id": ["unhashable"], "type": "ask"}])
@@ -212,3 +276,203 @@ def test_landing_look_and_copy():
 def test_landing_photos_are_local_jpegs():
     for name in ("punggol.jpg", "toapayoh.jpg"):
         assert (ROOT / "runway_game" / "assets" / name).read_bytes()[:2] == b"\xff\xd8", name
+
+
+def test_hdb_loan_limit_line_matches_hdb_and_the_rules():
+    """The line under the verdict tiles quotes today's HDB limit, from HDB's own page, and equals cpf_rules.HDB_LTV."""
+    from runway.cpf_rules import HDB_LTV
+
+    meta, _ = parse_doc(ROOT / "data" / "corpus" / "hdb-housing-loan-from-hdb.md")
+    corpus = " ".join((ROOT / "data" / "corpus" / "hdb-housing-loan-from-hdb.md").read_text(encoding="utf-8").split())
+    assert "The 75% LTV applies to complete resale applications received by HDB on or after 20 August 2024" in corpus
+    line = re.search(r'<p class="lnote" id="lLtvNote">(.*?)</p>', GAME, re.S).group(1)
+    assert re.findall(r"(\d+)%", line) == [str(round(HDB_LTV * 100))] and "20 August 2024" in line
+    assert f'href="{meta["url"]}"' in line and 'target="_blank"' in line
+    assert "normally 75%" not in GAME and ">Online<" not in GAME
+
+
+@needs_node
+def test_sales_window_label_comes_from_the_data(tmp_path):
+    """Map labels say the window the data holds (e.g. Jul–Sep 2026), worked out from the sales' own months."""
+    from runway.game_data import recent_months
+
+    start = GAME.index("function monthSpan(months){")
+    fn = GAME[start:GAME.index("\n}", start) + 2]
+    cases = [recent_months(), ["2026-09"], ["2025-11", "2026-01", "2025-12"], []]
+    got = node_json(tmp_path, f"{fn}\nconsole.log(JSON.stringify({json.dumps(cases)}.map(monthSpan)));")
+    assert got == ["Jul–Sep 2026", "Sep 2026", "Nov 2025–Jan 2026", ""]
+    assert recent_months() == sorted({x[0] for r in MAP["recent"] for x in r["x"]})
+    app = GAME[GAME.index("function startRunway("):GAME.index("/* Public price trends")]
+    assert "Jul–Sep" not in app and "Jul to Sep" not in app  # every map label uses SPAN
+
+
+def test_landing_stats_match_the_dataset():
+    meta = json.loads((ROOT / "data" / "dataset_meta.json").read_text())
+    assert f"<b>{meta['rows']:,}</b><span>Resale records</span>" in GAME
+    assert f"<b>{meta['first_month'][:4]}–{meta['last_month'][:4]}</b>" in GAME
+    assert f"{meta['rows']:,} sales from {meta['first_month'][:4]} to Sep {meta['last_month'][:4]}" in GAME
+    assert meta["last_month"][5:] == "09"
+
+
+def test_town_lease_effect_window_is_jan_2024_to_the_last_month():
+    """map.json's per-town lease effect (pct) came from the design hand-off without its script. Refitting it shows the
+    window the methodology states: same town, same flat type, same month, sales from Jan 2024 to the latest month."""
+    import numpy as np
+    import pandas as pd
+
+    df = pd.read_parquet(ROOT / "data" / "resale.parquet", columns=["month", "town", "flat_type", "remaining_lease", "price_psm"])
+    df = df[df["month"] >= pd.Timestamp("2024-01-01")].copy()
+    df["T"] = df["town"].astype(str).str.upper().str.replace(" / ", "/")
+    df["y"], df["x"] = np.log(df["price_psm"].astype(float)), df["remaining_lease"].astype(float)
+    g = df.groupby(["T", "month", df["flat_type"].astype(str)])
+    df["yd"], df["xd"] = df["y"] - g["y"].transform("mean"), df["x"] - g["x"].transform("mean")
+    fit = {t: (np.exp((s["xd"] * s["yd"]).sum() / (s["xd"] ** 2).sum()) - 1) * 100 for t, s in df.groupby("T")}
+    for t in MAP["towns"]:
+        assert fit[t["id"]] == pytest.approx(t["pct"], abs=0.006), t["id"]
+    assert "same month (Jan 2024 to Sep 2026)" in GAME and "lease effect from Jan 2024 – Sep 2026 sales" in GAME
+
+
+@needs_node
+def test_faq_answers_rest_on_their_documents(tmp_path):
+    """Each FAQ entry names a corpus document; its numbers come from that document or from cpf_rules."""
+    from runway import cpf_rules
+
+    start = GAME.index("const FAQ = ")
+    faq = node_json(tmp_path, GAME[start:GAME.index("/* end FAQ */", start)] + "\nconsole.log(JSON.stringify(FAQ));")
+    assert 8 <= len(faq) <= 10
+    rules = {str(n) for n in (cpf_rules.COVER_TO_AGE, cpf_rules.MIN_LEASE, cpf_rules.MAX_TENURE, cpf_rules.TENURE_AGE_CAP,
+                              round(cpf_rules.HDB_LTV * 100))}
+    for x in faq:
+        path = ROOT / "data" / "corpus" / f"{x['doc']}.md"
+        meta, _ = parse_doc(path)
+        assert (x["title"], x["publisher"], x["url"]) == (meta["title"], meta["publisher"], meta["url"]), x["q"]
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        doc_numbers = {n.rstrip(",") for n in re.findall(r"\d[\d,]*", text)}
+        for n in re.findall(r"\d[\d,]*", x["a"]):
+            assert n.rstrip(",") in doc_numbers or n in rules, (x["q"], n)
+        assert 2 <= len(re.findall(r"[.!?](\s|$)", x["a"])) <= 4, x["q"]  # 2 to 4 sentences
+    by_q = {x["q"]: x for x in faq}
+    worked = by_q["How is the pro-rated CPF amount worked out?"]
+    assert all(f in worked["a"] for f in ("$550,000", "$495,000", "90%", "25-year-old", "65 years"))
+    assert cpf_rules.cpf_share(25, 65) == pytest.approx(0.9) and 550_000 * cpf_rules.cpf_share(25, 65) == pytest.approx(495_000)
+    loan = by_q["Is my HDB loan cut too?"]["a"]
+    assert f"{round(cpf_rules.HDB_LTV * 100)}%" in loan and "20 August 2024" in loan
+    assert "25 years, 65 minus the average age" in by_q["How long can my HDB loan be?"]["a"]
+    assert "more than 20 years" in by_q["What is the 20-year minimum lease?"]["a"] and cpf_rules.cpf_share(30, 20) == 0
+    assert len({x["q"] for x in faq}) == len(faq)
+
+
+@needs_node
+def test_upload_guard(tmp_path):
+    start = GAME.index("const UPLOAD_TYPES")
+    code = GAME[start:GAME.index("\n}", GAME.index("function uploadProblem", start)) + 2]
+    cases = [["notes.txt", 100], ["HFE.PDF", 4_000_000], ["a.md", 5 * 1024 * 1024], ["b.text", 1], ["big.pdf", 5 * 1024 * 1024 + 1],
+             ["photo.jpg", 10], ["noext", 10], ["x.pdf.exe", 10], ["sheet.docx", 10]]
+    got = node_json(tmp_path, f"{code}\nconsole.log(JSON.stringify({json.dumps(cases)}.map(([n, s]) => uploadProblem(n, s))));")
+    assert got[:4] == ["", "", "", ""]
+    assert "5.0 MB" in got[4] and "up to 5 MB" in got[4]
+    assert all("PDF, TXT, MD and TEXT files only" in m for m in got[5:])
+    accept = re.search(r'<input type="file" id="upDoc" accept="([^"]+)"', GAME).group(1)
+    assert accept.split(",") == [".pdf", ".txt", ".md", ".text"] and "up to 5 MB" in GAME
+    assert "uploadProblem(f.name,f.size)" in GAME  # checked before the file is read
+
+
+def test_search_lists_every_page_by_its_name():
+    from runway.bridge import PAGES
+
+    block = GAME[GAME.index("const SEARCH = ["):GAME.index("const q = document.getElementById('navQ')")]
+    found = re.findall(r"\['([^']*)', '([^']+)', '[^']*'\]", block)
+    assert [p for p, _ in found] == list(PAGES)
+    assert all(name == (PAGES[p] if p else "Home") for p, name in found)
+    assert 'aria-label="Breadcrumb"' in GAME and "function crumbs(" in GAME
+
+
+def test_home_numbers_reach_the_app_only_on_purpose():
+    assert "RWLANDINGAGE" not in GAME  # no implicit hand-over; "See flats that pass" sends {town, ft, age}
+    assert "RW.enter('map', {town: $('#lTown').value || null, ft: $('#lType').value, age: L.age})" in GAME
+    assert 'id="lReset"' in GAME and 'id="dReset"' in GAME
+    # the browser keeps one thing: the Dark mode choice, under one key, and the Privacy Policy says so
+    assert not re.search(r"sessionStorage|indexedDB|document\.cookie", GAME)
+    uses = re.findall(r"localStorage\.(\w+)\('([^']*)'", GAME)
+    assert len(uses) == GAME.count("localStorage") == 2
+    assert {k for _, k in uses} == {"runway-theme"} and {m for m, _ in uses} == {"getItem", "setItem"}
+    assert "keeps exactly one thing in your browser's local storage" in GAME and "under the name runway-theme" in GAME
+
+
+def test_one_h1_on_the_home_page_and_described_ratings():
+    landing = GAME[GAME.index('<section class="screen" id="scrLanding">'):GAME.index("<!-- ONBOARDING -->")]
+    assert len(re.findall(r"<h1\b", landing)) == 1
+    assert "Lease matters: 2 of 3" not in GAME and 'aria-label="Lease effect on price in Sembawang: 2 out of 3, quite a lot"' in GAME
+    assert not re.search(r"openSheet\(`[^`]*<h1", GAME)  # sheets use h2, so a page keeps one h1
+
+
+def test_privacy_policy_matches_the_code():
+    from runway import bridge
+
+    config = (ROOT / ".streamlit" / "config.toml").read_text()
+    assert "gatherUsageStats = false" in config
+    assert bridge.MAX_ATTEMPTS == 5 and bridge.LOCKOUT_SECONDS == 60 and "for one minute after five" in GAME
+    assert "clean_history(payload.get(\"history\"), 6)" in (ROOT / "runway" / "bridge.py").read_text() and "up to six recent turns" in GAME
+    assert "m.timer = setTimeout(() => finish(m.id, null, new Error('timeout')), 90000);" in GAME and "waits up to 90 seconds" in GAME
+    assert GAME.count("Last updated: ${LEGAL_DATE}") == 2 and "const LEGAL_DATE='13 November 2026';" in GAME
+    assert "@" not in GAME[GAME.index("function privacyHtml"):GAME.index("// Case study:")]  # no contact address invented
+
+
+def test_title_and_favicon():
+    from runway.bridge import PAGES
+
+    assert PAGES[""] == "Runway — HDB CPF age-95 checker"
+    icon = (ROOT / "runway_game" / "assets" / "favicon.svg").read_text()
+    assert icon.startswith("<svg") and "M50 15 85 50 50 85 15 50Z" in icon
+    assert 'page_icon=str(HERE / "runway_game" / "assets" / "favicon.svg")' in (ROOT / "app.py").read_text()
+
+
+@needs_node
+def test_case_study_numbers_are_the_trends_cells(tmp_path):
+    """The case study reads the same cells as Trends' lease chart: 4-room, 80-89 and 50-59 years left."""
+    from runway.trends import load_trends
+
+    d = load_trends()
+    start = GAME.index("function caseNumbers(d){")
+    code = GAME[start:GAME.index("\n}\n", start) + 2]
+    (tmp_path / "d.json").write_text(json.dumps(d))
+    got = node_json(tmp_path, f"{code}\nconst d=JSON.parse(require('fs').readFileSync({json.dumps(str(tmp_path / 'd.json'))}));"
+                              "console.log(JSON.stringify(caseNumbers(d)));")
+    hi, lo = d["bands"].index("80 to 89"), d["bands"].index("50 to 59")
+    for row in got:
+        psm, price = d["lease_psm"]["4 ROOM"][row["town"]], d["lease_price"]["4 ROOM"][row["town"]]
+        assert row["psm"] == [psm[hi], psm[lo]] and row["price"] == [price[hi], price[lo]]
+        assert row["gap"] == math.floor((psm[hi] - psm[lo]) / psm[hi] * 100 + 0.5)
+    assert [r["town"] for r in got] == ["Toa Payoh", "Yishun"] and all(r["gap"] is not None for r in got)
+    assert got[0]["gap"] > 2 * got[1]["gap"]  # the story the page tells: the short-lease gap is far wider in Toa Payoh
+
+
+PERSONAL_CASES = [
+    "My NRIC is S1234567D", "my nric is s 1234567 d", "NRIC S1234567-D", "Call 9123 4567", "Call 91234567", "Call 9123-4567",
+    "Call +6591234567", "Call +65 9123 4567", "Call 6591234567", "Call ９１２３４５６７", "Email tan.ak@example.com", "Email tan＠example.com",
+    "My budget is 1200000 for a 5-room flat, how much CPF can I use?", "The flat costs 1234567 dollars, how much CPF can I use?",
+    "Can I use CPF for a $620,000 flat with 61 years of lease left?", "What is the 20-year minimum lease about?",
+    "How much CPF for a flat sold in 2026 with 58 years left if I am 28?",
+]
+
+
+@needs_node
+def test_personal_data_guard_matches_the_server(tmp_path):
+    """The browser refuses an NRIC, phone number or email before a question leaves it; the server uses the same patterns."""
+    from runway.llm import screen_question
+
+    guard = GAME[GAME.index("const PERSONAL = "):GAME.index("// FAQ: each answer rests")]
+    got = node_json(tmp_path, f"{guard}\nconsole.log(JSON.stringify({json.dumps(PERSONAL_CASES)}.map(q=>[personal(q),redact(q).txt])));")
+    for text, (blocked, shown) in zip(PERSONAL_CASES, got):
+        assert blocked == (screen_question(text) == "personal"), text
+        assert blocked == ("[removed]" in shown), text
+    assert any(b for b, _ in got) and not all(b for b, _ in got)
+
+
+def test_interface_only_trusts_its_host_and_verified_scripts():
+    listener = GAME[GAME.index("window.addEventListener('message', ev => {"):][:200]
+    assert "if(ev.source !== window.parent) return;" in listener  # other windows can post messages too
+    for url in re.findall(r"cdnjs\.cloudflare\.com/ajax/libs/[\w./-]+", GAME):
+        assert url.count(".") and "@" not in url  # exact versions only
+    loads = len(re.findall(r"loadScript\(V\+'[\w.]+\.js','sha512-[A-Za-z0-9+/=]{88}'\)", GAME))
+    assert loads == 2 and "s.integrity = 'sha512-" in GAME and "loadScript(src,sri)" in GAME  # pdf.js ×2, Leaflet

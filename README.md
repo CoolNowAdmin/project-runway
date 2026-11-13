@@ -12,17 +12,17 @@ costs in each town you're considering, and explains the result in plain English 
 
 ## What's in the app
 
-The interface in `runway_game/index.html` is the approved design hand-off, running full-window inside Streamlit:
+The interface in `runway_game/index.html` is the approved design hand-off, running full-window inside Streamlit. One left navigation (Home, Map, Shortlist, Trends, Ask, More, Log in) is on every screen: a fixed sidebar on wide screens, a drawer behind the menu button on phones. Every screen has its own address (`/`, `/map`, `/shortlist`, `/trends`, `/ask`, `/more`, and `/details`, `/text-size`, `/about`, `/how-it-works`, `/sources`, `/faq`, `/case-study`, `/privacy`, `/terms` under More), so reloads, shared links and Back/Forward work; addresses carry page names only, never anything you type. Every inner page has a breadcrumb back to Home, the navigation has a site search (pages, FAQ questions and towns, in the browser only), and an unknown address opens Home with a "Page not found" notice.
 
 | Screen | What it does |
 |---|---|
-| **Home page** | Landing page, Ask Runway first: a question box with one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, Source Serif 4 and Plus Jakarta Sans, as set out in `DESIGN.md`. **Check a flat** opens the map; **Log in** (top right) opens the reviewer login over the page. |
+| **Home page** | Landing page, Ask Runway first: a question box (**Ask Runway** asks it on the Ask page) beside one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, Source Serif 4 and Plus Jakarta Sans, as set out in `DESIGN.md`. **Log in** in the navigation opens the reviewer login over the page. |
 | **Setup** | Youngest buyer's age, rough CPF, first town. No names or NRIC. |
 | **Map** (use case 1) | Town Safari: every HDB block, MRT lines and the flats sold in Jul–Sep 2026. Tap a diamond for the verdict, runway bar, CPF you can use and cash you need. Keep, Why?, Next flat. |
 | **Shortlist** | Kept flats recalculated for your details, CSV download, and 26 town stamps with Wikimedia Commons photos. |
 | **Trends** | Public price charts, no login or setup needed. Compare median resale price or price per sqm by town since 1990 (up to 5 places, by flat type and period), and what remaining lease does to price. Numbers are built from `data/resale.parquet` by `runway/trends.py`; each chart has a table view. |
 | **Ask** (use case 2) | Answers from 32 official documents with sources, "Why?" for a flat, chat summary, read-aloud, and document upload that suggests towns. |
-| **More** | Your details, text size, About Us (with the required notice), How it works (flowcharts), Sources and credits. Visitors browse as guests and see short versions; logging in as `reviewer` shows the full ones. |
+| **More** | Your details (with a reset), text size, About Us (with the required notice), How it works (flowcharts), Sources and credits, an FAQ whose answers each cite one document in `data/corpus/`, a case study worked out live from the Trends data, the Privacy Policy and the Terms. Visitors browse as guests and see short versions; logging in as `reviewer` shows the full About Us and How it works. |
 
 Python (`runway/bridge.py`) checks the reviewer login, sends the map data after the home page loads, and answers questions
 (`runway/rag.py` + `runway/llm.py`). The map's calculator runs in the browser and is tested against
@@ -69,7 +69,7 @@ app.py                 Streamlit host: full-window interface + message loop
 runway_game/index.html the interface (from design/runway-mockup.html in the hand-off)
 runway_game/assets/    home page photos (Wikimedia Commons, credited on the page)
 DESIGN.md              colours, type, spacing and copy rules for the interface
-runway/bridge.py       sign-in, ask, why, summary, trends, towns and town_photo messages
+runway/bridge.py       sign-in, ask, why, summary, trends, towns, town_photo and nav (page URL) messages
 runway/cpf_rules.py    age-95 rule, CPF share, HDB loan limit, loan tenure (Python reference)
 runway/rag.py          chunking, BM25 + embedding search, reciprocal rank fusion
 runway/llm.py          prompts, question screening, number guard, OpenAI calls
