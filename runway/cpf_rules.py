@@ -106,6 +106,11 @@ def flat_money(price: float, remaining_lease: float, buyer_ages: list[int], cpf_
     )
 
 
+def sale_fits(price: float, remaining_lease: float, buyer_ages: list[int], cpf_oa: float, cash: float) -> bool:
+    """Budget search: a sale fits when the cash needed at the start (largest HDB loan, then CPF OA) is within cash."""
+    return flat_money(price, remaining_lease, buyer_ages, cpf_oa).cash_at_start <= cash
+
+
 def lease_needed_for_full_cpf(youngest_age: int) -> int:
     """Remaining lease that covers the youngest buyer to 95, so CPF can be used in full."""
     return COVER_TO_AGE - youngest_age
