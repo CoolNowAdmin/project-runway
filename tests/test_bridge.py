@@ -208,6 +208,7 @@ def test_town_photo_returns_one_photo_with_credit(bot, index):
     reply = send("town_photo", {}, bot, index, id="TOA PAYOH")
     assert reply["ok"] is True and reply["img"].startswith("data:image/jpeg;base64,")
     assert "Wikimedia Commons" in reply["credit"] and reply["landmark"]
+    assert reply["url"].startswith("https://commons.wikimedia.org/wiki/File:")
 
 
 @pytest.mark.parametrize("town", ["NOWHERE", "../../etc/passwd", "toa payoh", "", None, 5, {"id": "TOA PAYOH"}, ["BEDOK"]])

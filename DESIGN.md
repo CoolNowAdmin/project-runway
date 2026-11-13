@@ -17,7 +17,7 @@ Locked design direction for every Runway page. Do not invent per-page colours, f
 | `--beige-2` | `#F4EDE0` | `#222F2A` | grouped fills: bands, rows, lists, tiles, notices, the assistant's chat bubble, the upload card, empty states |
 | `--beige-deep` | `#C9B892` | `#5E5442` | switch tracks, the empty-state mark, hand-drawn marks |
 | `--field` / `--field-alt` | `#F4EDE0` / `#FDFEFD` | `#2B3833` / `#2B3833` | text fields and selects; `-alt` for a field that sits on a beige-2 fill |
-| `--tint` / `--tint-2` | green at 10% / 16% | green at 12% / 18% | secondary buttons, chips, quick picks, the − stepper (`-2` on hover and press); translucent, so they work on any fill |
+| `--tint` / `--tint-2` | green at 10% / 16% | green at 12% / 18% | secondary buttons, chips, quick picks (`-2` on hover and press, and for the wheel's centre band); translucent, so they work on any fill |
 | `--fill-press` | `#EDE3D1` | `#2F3128` | hover and press on beige-2 rows and lists |
 | `--green` | `#023933` | `#8DD0B3` | **the accent**: buttons, links, headings, selected states |
 | `--green-deep` | `#012A26` | `#ADE0C9` | hover and pressed state of the accent |
@@ -53,7 +53,7 @@ Rules: no second accent, no purple, no glowing buttons. Gradients appear in two 
 - Two text tiers, in rem so Text size scales them: normal text 17px (`.944rem`, 400) for paragraphs, nav items, inputs, breadcrumbs and messages on every page; small 14px (`.778rem`) for notes, captions and credits. Buttons and big numbers keep their own sizes. Weights 400 to 700; nothing heavier.
 - **Wordmark only:** Anton (RUNWAY), the one font loaded from Google Fonts.
 - Numbers: `font-variant-numeric: tabular-nums` everywhere a number can change.
-- Sentence case for labels and buttons. Caps only for the wordmark. Inner pages size type in rem so Text size "Large" scales them.
+- Sentence case for labels and buttons. Caps only for the wordmark. Inner pages size type in rem so Text size scales them: its wheel sets normal text from 14 to 24px (root size = px ÷ .944), for the visit only.
 
 ## Spacing & shape
 - 8px grid. Section padding 80px (desktop) / 48px (phone). Content max-width 1240px, 32px gutters.
@@ -61,7 +61,8 @@ Rules: no second accent, no purple, no glowing buttons. Gradients appear in two 
 - **No dashed or dotted lines** anywhere in the interface. The two exceptions: the dashed line that bridges a gap in a Trends chart (and the sentence that explains it), and the vendored Leaflet stylesheet.
 - **Hairlines (`--line`) stay only where a surface meets the same colour and nothing else separates it:** the phone app bar's bottom edge, the desktop sidebar's right edge, the Ask composer's top edge, row separators inside a More list and in tables, the divider between the calculator's two halves, the line above "More numbers" in a sheet, under the chat card's header, the footer divider, the Trends tooltip and the small labels on the map.
 - Cards: 20px radius (24px for the calculator, bands and phone sheets), `corner-shape: squircle` where supported. Inner boxes, tiles and bubbles 12–16px.
-- **Buttons:** one radius scale: 14px for 46–56px buttons, 12px (`--radius-chip`) for 44px compact ones. Green filled primary (`--green-deep` on hover and press), tinted secondary (`--tint`, green text, no border), beige secondary, plain text tertiary (links, crumbs, "Show as a table"). Heights: 44px minimum; 50px for primary actions; steppers 46px squares, − tinted, + green.
+- **Buttons:** one radius scale: 14px for 46–56px buttons, 12px (`--radius-chip`) for 44px compact ones. Green filled primary (`--green-deep` on hover and press), tinted secondary (`--tint`, green text, no border), beige secondary, plain text tertiary (links, crumbs, "Show as a table"). Heights: 44px minimum; 50px for primary actions.
+- **Number pickers:** every number the user picks (ages, lease, text size) is a wheel (`wheelHtml`/`bindWheel`): a `role="listbox"` of 44px rows on a `--field` fill, `scroll-snap-type: y mandatory`, the centred row on a filled `--tint-2` band and the rows fading toward the edges; scroll, click, arrows, Page Up/Down and Home/End pick. Five rows; three in Home's calculator. Map zoom stays + and −.
 - **Chips and quick picks:** 44px, 12px radius, tinted; a selected single choice is green with snow text. Pills (999px) only for count badges.
 - **Fields** (inputs, search, selects, the composer): 50px, `--field` fill, no border, 14px radius; selects keep Home's chevron; placeholders `--ink-2` (≥4.5:1). Focus is the global ring (below). The range slider is the native control in `accent-color` green.
 - Shadows: `--shadow-soft` (`0 1px 2px rgba(1,42,38,.06), 0 4px 14px rgba(1,42,38,.07)`) on cards that sit in the page; `--shadow-card` (`0 1px 2px rgba(1,42,38,.06), 0 16px 40px rgba(1,42,38,.14)`) on things that float over the map or the photo. Both black in dark mode. No coloured glows.
@@ -73,8 +74,8 @@ Rules: no second accent, no purple, no glowing buttons. Gradients appear in two 
 - Focus: a 2px `--green` ring 3px outside the element on every interactive element; `--brand-hi` on brand surfaces. Never `outline: none` without a replacement.
 - Motion: 300ms or less, with the easing tokens, never linear or a built-in curve: `--ease-out` `cubic-bezier(.23,1,.32,1)` for things entering, leaving and changing colour; `--ease-in-out` `cubic-bezier(.77,0,.175,1)` for things moving on screen (the lease bar filling, the plane); `--ease-drawer` `cubic-bezier(.32,.72,0,1)` for the phone drawer and the sheets. No overshoot. Nothing enters from `scale(0)`. Only `transform` and `opacity` move; no `transition: all`.
 - The drawer and the sheets enter and leave along the same path (drawer from the left, phone sheets from the bottom, desktop sheets from the right), out a little faster than in. A click or tap closes a sheet with a slide; Escape and code close it at once.
-- **A key press gets no motion.** The page records the last input on `html[data-input]` (`key` or `pointer`); with `key`, the drawer, sheets, dialogs, toasts and switches change at once. Typing, steppers and the calculator's bar get no animation at all: the bar follows the slider 1:1.
-- Every press shows at once: anything pressable (buttons, chips, quick picks, steppers, nav items, list rows) darkens and shrinks to `scale(0.97)` over 140ms `--ease-out` (not for a keyboard press); anything that waits on the server shows a busy or loading state. Hover effects only inside `@media (hover:hover) and (pointer:fine)`.
+- **A key press gets no motion.** The page records the last input on `html[data-input]` (`key` or `pointer`); with `key`, the drawer, sheets, dialogs, toasts and switches change at once. Typing, a wheel moved by key and the calculator's bar get no animation at all: the bar follows the slider 1:1.
+- Every press shows at once: anything pressable (buttons, chips, quick picks, nav items, list rows) darkens and shrinks to `scale(0.97)` over 140ms `--ease-out` (not for a keyboard press); anything that waits on the server shows a busy or loading state. Hover effects only inside `@media (hover:hover) and (pointer:fine)`.
 - `prefers-reduced-motion`: movement goes (no slides, scales or bounces; the drawer and sheets fade), opacity and colour changes stay.
 
 ## Navigation

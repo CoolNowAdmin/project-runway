@@ -24,7 +24,7 @@ def _photo(row: dict) -> dict | None:
     path = PHOTO_DIR / row["photo_file"] if row.get("photo_file") else None
     if path and path.exists():
         img = "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode()
-        return {"img": img, "credit": row["caption"], "landmark": row["landmark"]}
+        return {"img": img, "credit": row["caption"], "landmark": row["landmark"], "url": row["source_url"]}
     return None
 
 
