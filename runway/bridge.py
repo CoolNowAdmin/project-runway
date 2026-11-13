@@ -34,6 +34,7 @@ LOCKS_LOCK = threading.Lock()  # each session runs in its own thread
 NUMBERS_NOTE = "Numbers from Runway's calculator, not the AI."
 FEEDBACK_FILE = Path(__file__).resolve().parent.parent / "data" / "feedback.jsonl"
 MAX_FEEDBACK_QUESTION = 300
+MAX_TTS = 60  # per session, so a script can't use the server as a free speech service
 MAX_VOTES = 30  # per session; a changed vote counts again
 # The facts the interface's flatFacts() sends; the explanation template needs the first five.
 REQUIRED_FACTS = {"Remaining lease (years)", "Youngest buyer is this old when lease ends", "Years short of age 95",
@@ -175,6 +176,16 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
         except Exception as exc:  # as for trends: say what failed, in the log and on the page
             traceback.print_exc()
             return {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:200]}
+
+    if kind == "tts":  # read-aloud in the Singapore voice pack (runway/voicepack.py); only text the page already shows
+        n = state.get("tts", 0)
+        if n >= MAX_TTS:
+            return {"ok": False, "error": "too many read-alouds"}
+        state["tts"] = n + 1
+        from runway import voicepack
+
+        audio = voicepack.speak(str(payload.get("text", "")), language(payload.get("lang")))
+        return {"ok": True, "audio": audio} if audio else {"ok": False, "error": "voice unavailable"}
 
     if kind == "summary":
         return {"text": bot.summarise(clean_history(payload.get("history"), 12))}

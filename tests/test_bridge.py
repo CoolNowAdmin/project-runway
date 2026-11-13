@@ -293,3 +293,26 @@ def test_a_huge_username_is_not_kept(bot, index):
 
     send("login", {}, bot, index, u="a" * 100_000, p="nope")
     assert max(map(len, runway.bridge.LOCKS)) <= 64
+
+
+def test_tts_uses_the_voice_pack_and_is_capped(monkeypatch, bot, index):
+    import runway.bridge as bridge
+    from runway import voicepack
+
+    calls = []
+    monkeypatch.setattr(voicepack, "speak", lambda text, lang: calls.append((text, lang)) or "QUJD")
+    state = {}
+    assert handle({"type": "tts", "payload": {"text": "Hello", "lang": "ta"}}, state, {}, bot, index) == {"ok": True, "audio": "QUJD"}
+    handle({"type": "tts", "payload": {"text": "Hi", "lang": "xx"}}, state, {}, bot, index)
+    assert calls == [("Hello", "ta"), ("Hi", "en")]  # an unknown language reads as English
+    state["tts"] = bridge.MAX_TTS
+    assert handle({"type": "tts", "payload": {"text": "x"}}, state, {}, bot, index)["ok"] is False
+    monkeypatch.setattr(voicepack, "speak", lambda text, lang: None)
+    assert handle({"type": "tts", "payload": {"text": "x"}}, {}, {}, bot, index)["ok"] is False  # the page falls back
+
+
+def test_voicepack_has_a_voice_for_every_answer_language():
+    from runway.llm import LANGUAGES
+    from runway.voicepack import VOICES
+
+    assert set(LANGUAGES) <= set(VOICES)

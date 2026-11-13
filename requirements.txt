@@ -8,3 +8,4 @@ pypdf>=5  # reviewer uploads: text from PDFs (runway/content.py)
 beautifulsoup4>=4.12  # reviewer uploads: text from HTML pages
 psycopg[binary]>=3.2  # Neon (Postgres): reviewer edits, uploads and votes survive redeploys (runway/store.py)
 boto3>=1.35  # Cloudflare R2: the original file of each upload
+edge-tts>=7  # Singapore voice pack for read-aloud (runway/voicepack.py); free, no key

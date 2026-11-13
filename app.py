@@ -132,6 +132,8 @@ if isinstance(msg, dict) and isinstance(msg.get("id"), str) and len(msg["id"]) <
         reply = {"ok": False, "error": "Something went wrong. Try again."}
     if msg.get("type") == "upload_doc" and reply.get("ok"):
         retriever.clear()  # the next question searches the new document too
+    for r in replies:  # audio was delivered once; resending it with every rerun would be megabytes
+        r["value"].pop("audio", None)
     replies.append({"id": msg["id"], "value": reply})
     del replies[:-5]  # only the last five are ever sent; in place, so logout's clear() still reaches this list
     if msg.get("type") == "nav" and reply.get("ok") and reply["page"] != pg.url_path:
