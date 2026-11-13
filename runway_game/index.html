@@ -3108,10 +3108,10 @@ const VPREF={en:[/^en[-_]SG/i,/^en[-_](GB|AU|IN)/i,/^en/i], zh:[/^(zh|cmn)[-_](H
 const isSG=v=>/[-_]SG/i.test(v.lang)||/singapore/i.test(v.name);
 const vrank=(v,lang)=>{const i=VPREF[lang].findIndex(re=>re.test(v.lang)); return i>0&&isSG(v)?0:i;};
 const voicesFor=lang=>!TTS?[]:TTS.getVoices().map(v=>[v,vrank(v,lang)]).filter(x=>x[1]>=0).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
-const VKEY=lang=>'runway-voice-'+lang;  // the visitor's pick, per language, in this browser only
+const VPICK={};  // the visitor's pick per language, for this visit only (the browser stores just Dark mode)
 function chosenVoice(lang){
-  const vs=voicesFor(lang); let pick=null; try{pick=localStorage.getItem(VKEY(lang));}catch(e){}
-  return vs.find(v=>v.voiceURI===pick)||vs[0]||null;
+  const vs=voicesFor(lang);
+  return vs.find(v=>v.voiceURI===VPICK[lang])||vs[0]||null;
 }
 const vname=v=>v.name.replace(/\s*\(.*\)/,'');
 function voiceNote(lang){
@@ -3130,7 +3130,7 @@ function pickVoice(){
   sel.innerHTML=vs.map(v=>`<option value="${esc(v.voiceURI)}" ${v===cur?'selected':''}>${esc(vname(v))} · ${esc(v.lang)}${isSG(v)?' · Singapore':''}</option>`).join('');
   w.hidden=false; note.textContent=voiceNote(lang);
 }
-$('#voiceSel').onchange=e=>{stopSpeak(); try{localStorage.setItem(VKEY(S.lang),e.target.value);}catch(x){} $('#voiceName').textContent=voiceNote(S.lang);};
+$('#voiceSel').onchange=e=>{stopSpeak(); VPICK[S.lang]=e.target.value; $('#voiceName').textContent=voiceNote(S.lang);};
 if(TTS){pickVoice(); TTS.onvoiceschanged=pickVoice;} else pickVoice();
 let speakingBtn=null;
 function stopSpeak(){if(TTS)TTS.cancel();if(speakingBtn){speakingBtn.setAttribute('aria-pressed','false');speakingBtn.lastChild.textContent='Listen';}speakingBtn=null;}
