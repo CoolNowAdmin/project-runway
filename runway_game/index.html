@@ -3130,11 +3130,11 @@ function packFetch(text,lang){
   if(!PACKJOBS.has(k)) PACKJOBS.set(k,RW.send('tts',{text,lang}).then(r=>r&&r.ok&&r.audio||null,()=>null).then(a=>{if(!a)PACKJOBS.delete(k);return a;}));
   return PACKJOBS.get(k);
 }
-// First sentence alone (starts sooner), then ~250 characters, then ~600: the next chunk loads while the last one plays.
+// First sentence (at least 25 characters; starts sooner), then ~250 characters, then ~600: the next chunk loads while the last one plays.
 function packChunks(t){
   const out=[]; let cur='';
   for(const s of t.match(/[^.!?。！？]+[.!?。！？]*\s*/g)||[t]){
-    if(!out.length){out.push(s.trim());continue;}
+    if(!out.length){cur+=s; if(cur.trim().length>=25){out.push(cur.trim());cur='';} continue;}  // the voice returns nothing for "Hello."
     if(cur&&cur.length+s.length>(out.length===1?250:600)){out.push(cur.trim());cur='';}
     cur+=s;
   }

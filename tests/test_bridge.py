@@ -316,3 +316,23 @@ def test_voicepack_has_a_voice_for_every_answer_language():
     from runway.voicepack import VOICES
 
     assert set(LANGUAGES) <= set(VOICES)
+
+
+def test_voicepack_retries_once_then_gives_up(monkeypatch):
+    import sys
+    import types
+
+    from runway import voicepack
+
+    tries = []
+
+    class Fail:
+        def __init__(self, *a, **k):
+            tries.append(1)
+
+        async def stream(self):
+            raise RuntimeError("no audio")
+            yield  # pragma: no cover
+
+    monkeypatch.setitem(sys.modules, "edge_tts", types.SimpleNamespace(Communicate=Fail))
+    assert voicepack.speak("Hello there.", "en") is None and len(tries) == 2

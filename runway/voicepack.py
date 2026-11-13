@@ -24,9 +24,12 @@ def speak(text: str, lang: str) -> str | None:
 
         return b"".join([c["data"] async for c in edge_tts.Communicate(text, voice, rate="-8%").stream() if c["type"] == "audio"])
 
-    try:
-        audio = asyncio.run(asyncio.wait_for(run(), 20))
-    except Exception as exc:  # network, bad voice, library change: the caller falls back
-        print(f"[runway] voice pack failed: {type(exc).__name__}: {exc}", flush=True)
+    for attempt in (1, 2):  # the service sometimes returns nothing once; a second try usually works
+        try:
+            audio = asyncio.run(asyncio.wait_for(run(), 20))
+            break
+        except Exception as exc:  # network, bad voice, library change: the caller falls back
+            print(f"[runway] voice pack failed (try {attempt}): {type(exc).__name__}: {exc}", flush=True)
+    else:
         return None
     return base64.b64encode(audio).decode() if audio else None
