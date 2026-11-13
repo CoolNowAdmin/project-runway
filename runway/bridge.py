@@ -13,6 +13,7 @@ import traceback
 from collections.abc import MutableMapping
 
 from runway.auth import check_login
+from runway.game_data import load_towns, town_photo
 from runway.llm import AI_BUSY, INVENTED_FIGURE, LLM, screen_question
 from runway.rag import Chunk, Retriever
 from runway.trends import load_trends
@@ -111,9 +112,14 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
         return {"text": answer.text, "sources": source_view(answer.sources), "blocked": answer.blocked,
                 "offline": offline, "note": note}
 
-    if kind == "trends":  # public price history: no login, no personal details
+    if kind in {"trends", "towns", "town_photo"}:  # public price and town data: no login, no personal details
         try:
-            return {"ok": True, "data": load_trends()}
+            if kind == "trends":
+                return {"ok": True, "data": load_trends()}
+            if kind == "towns":
+                return {"ok": True, "towns": load_towns()}
+            photo = town_photo(payload.get("id"))
+            return {"ok": True, **photo} if photo else {"ok": False, "error": "no photo"}
         except Exception as exc:  # say what failed, in the log and on the page, so it can be fixed fast
             traceback.print_exc()
             return {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:200]}

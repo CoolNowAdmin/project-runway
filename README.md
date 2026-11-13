@@ -16,7 +16,7 @@ The interface in `runway_game/index.html` is the approved design hand-off, runni
 
 | Screen | What it does |
 |---|---|
-| **Home page** | Landing page: the idea, an age-95 rule widget, lease by town, an Ask preview and the required notice. **Check a flat** opens the map; **Log in** (top right) opens the reviewer login over the page. |
+| **Home page** | Landing page, Ask Runway first: a question box with one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, Source Serif 4 and Plus Jakarta Sans, as set out in `DESIGN.md`. **Check a flat** opens the map; **Log in** (top right) opens the reviewer login over the page. |
 | **Setup** | Youngest buyer's age, rough CPF, first town. No names or NRIC. |
 | **Map** (use case 1) | Town Safari: every HDB block, MRT lines and the flats sold in Jul–Sep 2026. Tap a diamond for the verdict, runway bar, CPF you can use and cash you need. Keep, Why?, Next flat. |
 | **Shortlist** | Kept flats recalculated for your details, CSV download, and 26 town stamps with Wikimedia Commons photos. |
@@ -67,12 +67,14 @@ file's contents into **Streamlit Community Cloud > App settings > Secrets**. Use
 ```
 app.py                 Streamlit host: full-window interface + message loop
 runway_game/index.html the interface (from design/runway-mockup.html in the hand-off)
-runway/bridge.py       sign-in, ask, why, summary messages
+runway_game/assets/    home page photos (Wikimedia Commons, credited on the page)
+DESIGN.md              colours, type, spacing and copy rules for the interface
+runway/bridge.py       sign-in, ask, why, summary, trends, towns and town_photo messages
 runway/cpf_rules.py    age-95 rule, CPF share, HDB loan limit, loan tenure (Python reference)
 runway/rag.py          chunking, BM25 + embedding search, reciprocal rank fusion
 runway/llm.py          prompts, question screening, number guard, OpenAI calls
 runway/auth.py         password hashing and checks
-runway/game_data.py    map data and town photos sent after sign-in
+runway/game_data.py    map data and town photos; town list and one photo at a time for the home page
 data/game/             towns, Jul-Sep 2026 sales, blocks, roads, MRT, amenities
 data/photos/           26 town photos + credits (scripts/fetch_town_photos.py)
 data/corpus/           32 official documents with source URLs
