@@ -859,6 +859,10 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .voicebar{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap;background:var(--beige-2);border-radius:16px;padding:4px 14px;font:500 .778rem var(--font-ui);color:var(--ink-2)}
 .voicebar label{display:inline-flex;gap:10px;align-items:center;font-weight:700;color:var(--ink);min-height:44px;cursor:pointer}
 .voicebar input{width:22px;height:22px;accent-color:var(--green)}
+.voicebar .lselw{flex:1 1 220px;max-width:340px;padding-block:4px}
+.voicebar .lselw[hidden]{display:none}
+.voicebar .lsel{height:44px;font-size:14px;background:var(--snow)}
+#voiceName{flex:1 1 100%;padding-bottom:6px}
 .road-label{background:none;border:0}
 .road-label span{display:inline-block;transform:translate(-50%,-50%);font:600 11px/1.1 var(--font-ui);color:var(--ink-2);white-space:nowrap;text-shadow:0 0 3px var(--snow),0 0 3px var(--snow),0 0 3px var(--snow);letter-spacing:.02em}
 .zoomed-out .road-label span{display:none}
@@ -1777,7 +1781,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
       <div class="pad" style="flex:1">
         <nav aria-label="Breadcrumb" class="crumbs"><ol><li><button type="button" data-go="">Home</button></li><li aria-current="page">Ask</li></ol></nav>
         <div class="scr-h"><h1>Ask Runway</h1><p class="ui" style="font-size:.9rem">Answers come from CPF, HDB and MND.</p></div>
-        <div class="voicebar" data-st="Azure Speech en-SG voice"><label><input type="checkbox" id="autoRead"> Read answers aloud</label><span id="voiceName">Checking voices…</span></div>
+        <div class="voicebar" data-st="device voices, Singapore first"><label><input type="checkbox" id="autoRead"> Read answers aloud</label><span class="lselw" id="voiceSelW" hidden><label for="voiceSel" class="lsr">Voice for reading answers aloud</label><select class="lsel" id="voiceSel" aria-describedby="voiceName"></select><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span id="voiceName">Checking voices…</span></div>
         <div class="langbar"><label for="askLang">Answer language</label><span class="lselw"><select class="lsel" id="askLang" aria-describedby="langNote"><option value="en" lang="en">English</option><option value="zh" lang="zh-Hans">中文</option><option value="ms" lang="ms">Bahasa Melayu</option><option value="ta" lang="ta">தமிழ்</option></select><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><p class="small" id="langNote">Answers in your language; official quotes and figures stay in English.</p></div>
         <div class="upcard" data-st="st.file_uploader → extract → recommend">
           <b class="ui" style="font-size:1rem;color:var(--ink)">Have a document? I can suggest towns.</b>
@@ -2913,8 +2917,8 @@ function renderList(){
 
 /* ---------- Ask Runway ---------- */
 // Answer language: AI answers, read-aloud and voice input only; like Text size it lasts for the visit and is not stored.
-const LANGS={en:{tag:'en',name:'English',rec:'en-SG',voice:/^en/i}, zh:{tag:'zh-Hans',name:'Chinese',rec:'zh-CN',voice:/^(zh|cmn)/i},
-  ms:{tag:'ms',name:'Malay',rec:'ms-MY',voice:/^ms/i}, ta:{tag:'ta',name:'Tamil',rec:'ta-SG',voice:/^ta/i}};
+const LANGS={en:{tag:'en',name:'English',rec:'en-SG'}, zh:{tag:'zh-Hans',name:'Chinese',rec:'zh-CN'},
+  ms:{tag:'ms',name:'Malay',rec:'ms-MY'}, ta:{tag:'ta',name:'Tamil',rec:'ta-SG'}};  // read-aloud voices: VPREF
 S.lang='en';
 $('#askLang').onchange=e=>{ S.lang = LANGS[e.target.value] ? e.target.value : 'en'; pickVoice(); };
 const SUGG=['Can I still use CPF for an old flat?','Is my HDB loan cut too?','How long can my loan be?','Why do short leases cost more in Clementi than Yishun?'];
@@ -3097,24 +3101,43 @@ $('#sampleBtn').onclick=()=>handleDoc('sample-buyer-notes.txt',async()=>SAMPLE_D
 
 /* ---------- voice: text to speech (prefers a Singapore English voice) ---------- */
 const TTS = 'speechSynthesis' in window ? window.speechSynthesis : null;
-let VOICE=null;
-function pickVoice(){
-  if(!TTS){$('#voiceName').textContent='Read-aloud is not supported on this device.';return;}
-  const vs=TTS.getVoices();
-  VOICE = vs.find(v=>/en[-_]SG/i.test(v.lang)) || vs.find(v=>/singapore/i.test(v.name)) || vs.find(v=>/en[-_]GB/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)) || null;
-  const sg = VOICE && (/en[-_]SG/i.test(VOICE.lang)||/singapore/i.test(VOICE.name));
-  if(S.lang!=='en'){ const v=langVoice(S.lang), n=LANGS[S.lang].name;  // never read Tamil with an English voice
-    $('#voiceName').textContent = v ? `Voice: ${v.name.replace(/\s*\(.*\)/,'')} (${n})` : `No ${n} voice on this device, so answers in ${n} can't be read aloud.`; return; }
-  $('#voiceName').textContent = !vs.length ? 'Voice: device default' : sg ? `Voice: ${VOICE.name.replace(/\s*\(.*\)/,'')} (Singapore English)` : `No Singapore voice on this device. Using ${VOICE?VOICE.name.replace(/\s*\(.*\)/,''):'the default'}.`;
+// The voices that can read each answer language, best first: Singapore, then the nearest region. Mandarin skips
+// zh-HK, which is Cantonese. A voice named "Singapore" counts as Singapore English even with a bare "en" tag.
+const VPREF={en:[/^en[-_]SG/i,/^en[-_](GB|AU|IN)/i,/^en/i], zh:[/^(zh|cmn)[-_](Hans[-_])?SG/i,/^(zh|cmn)[-_](Hans[-_])?CN/i,/^(zh|cmn)[-_](Hant[-_])?TW/i],
+  ms:[/^ms[-_]SG/i,/^ms[-_]MY/i,/^ms/i], ta:[/^ta[-_]SG/i,/^ta[-_]MY/i,/^ta/i]};
+const isSG=v=>/[-_]SG/i.test(v.lang)||/singapore/i.test(v.name);
+const vrank=(v,lang)=>{const i=VPREF[lang].findIndex(re=>re.test(v.lang)); return i>0&&isSG(v)?0:i;};
+const voicesFor=lang=>!TTS?[]:TTS.getVoices().map(v=>[v,vrank(v,lang)]).filter(x=>x[1]>=0).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+const VKEY=lang=>'runway-voice-'+lang;  // the visitor's pick, per language, in this browser only
+function chosenVoice(lang){
+  const vs=voicesFor(lang); let pick=null; try{pick=localStorage.getItem(VKEY(lang));}catch(e){}
+  return vs.find(v=>v.voiceURI===pick)||vs[0]||null;
 }
+const vname=v=>v.name.replace(/\s*\(.*\)/,'');
+function voiceNote(lang){
+  const v=chosenVoice(lang), n={en:'English',zh:'Mandarin',ms:'Malay',ta:'Tamil'}[lang];
+  if(v&&isSG(v)) return `Reads ${n} answers in a Singapore voice.`;
+  return voicesFor(lang).some(isSG) ? `Reads ${n} answers in ${vname(v)}. A Singapore voice is also in the list.`
+    : `No Singapore ${n} voice on this device, so Runway uses the closest one. Pick another above.`;
+}
+function pickVoice(){
+  const w=$('#voiceSelW'), sel=$('#voiceSel'), note=$('#voiceName'), lang=S.lang, n=LANGS[lang].name;
+  w.hidden=true;
+  if(!TTS){note.textContent='Read-aloud is not supported on this device.';return;}
+  if(!TTS.getVoices().length){note.textContent=lang==='en'?'Voice: your device default.':`No ${n} voice on this device, so answers in ${n} can't be read aloud.`;return;}
+  const vs=voicesFor(lang), cur=chosenVoice(lang);
+  if(!vs.length){note.textContent=`No ${n} voice on this device, so answers in ${n} can't be read aloud. You can add one in your device's language or speech settings.`;return;}  // never read Tamil with an English voice
+  sel.innerHTML=vs.map(v=>`<option value="${esc(v.voiceURI)}" ${v===cur?'selected':''}>${esc(vname(v))} · ${esc(v.lang)}${isSG(v)?' · Singapore':''}</option>`).join('');
+  w.hidden=false; note.textContent=voiceNote(lang);
+}
+$('#voiceSel').onchange=e=>{stopSpeak(); try{localStorage.setItem(VKEY(S.lang),e.target.value);}catch(x){} $('#voiceName').textContent=voiceNote(S.lang);};
 if(TTS){pickVoice(); TTS.onvoiceschanged=pickVoice;} else pickVoice();
 let speakingBtn=null;
 function stopSpeak(){if(TTS)TTS.cancel();if(speakingBtn){speakingBtn.setAttribute('aria-pressed','false');speakingBtn.lastChild.textContent='Listen';}speakingBtn=null;}
-function langVoice(lang){ const vs=TTS?TTS.getVoices():[], re=LANGS[lang].voice; return vs.find(v=>re.test(v.lang)&&/SG/i.test(v.lang)) || vs.find(v=>re.test(v.lang)) || null; }
 function speak(text,btn,lang='en'){
   if(!TTS) return;
   stopSpeak();
-  const voice = lang==='en' ? VOICE : langVoice(lang);
+  const voice = chosenVoice(lang);
   if(lang!=='en' && !voice){ if(btn) btn.lastChild.textContent=`No ${LANGS[lang].name} voice on this device`; return; }
   const u=new SpeechSynthesisUtterance(lang==='en' ? text.replace(/\$/g,' dollars ').replace(/ dollars ([\d,]+)/g,' $1 dollars') : text);
   if(voice){u.voice=voice;u.lang=voice.lang;} else u.lang='en-SG';
