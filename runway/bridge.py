@@ -8,14 +8,16 @@ documents stay server-side.
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 import traceback
 from collections.abc import MutableMapping
+from pathlib import Path
 
 from runway.auth import check_login
 from runway.game_data import load_towns, recent_months, town_photo
-from runway.llm import AI_BUSY, INVENTED_FIGURE, LLM, screen_question
+from runway.llm import AI_BUSY, INVENTED_FIGURE, LLM, language, screen_question
 from runway.rag import Chunk, Retriever
 
 # Every screen's URL path and its name. app.py makes one page per entry; the interface (RW.PATHS) uses the same paths.
@@ -29,6 +31,9 @@ LOCKOUT_SECONDS = 60
 LOCKS: dict[str, tuple[int, float]] = {}
 LOCKS_LOCK = threading.Lock()  # each session runs in its own thread
 NUMBERS_NOTE = "Numbers from Runway's calculator, not the AI."
+FEEDBACK_FILE = Path(__file__).resolve().parent.parent / "data" / "feedback.jsonl"
+MAX_FEEDBACK_QUESTION = 300
+MAX_VOTES = 30  # per session; a changed vote counts again
 # The facts the interface's flatFacts() sends; the explanation template needs the first five.
 REQUIRED_FACTS = {"Remaining lease (years)", "Youngest buyer is this old when lease ends", "Years short of age 95",
                   "CPF usable (% of Valuation Limit)", "HDB loan limit (% of price or value)"}
@@ -112,26 +117,27 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
 
     if kind == "ask":
         question = str(payload.get("q", ""))[:1000]
+        lang = language(payload.get("lang"))
         facts = payload.get("facts")
         if facts:  # "Why?" for one flat: explain Runway's own numbers, never new ones
             if not isinstance(facts, dict) or not REQUIRED_FACTS <= facts.keys():
                 return {"ok": False, "error": "bad facts"}
             facts = {k: str(facts[k])[:60] for k in FACT_KEYS if k in facts}  # only known keys reach the AI
             sources = index.search(WHY_QUERY[facts.get("Lease covers youngest buyer to age 95") == "yes"], k=4)
-            text, used_llm = bot.explain(facts, sources)
-            return {"text": text, "sources": source_view(sources), "offline": False,
+            text, used_llm = bot.explain(facts, sources, lang=lang)
+            return {"text": text, "sources": source_view(sources), "offline": False, "lang": lang if used_llm else "en",
                     "note": NUMBERS_NOTE if used_llm else NUMBERS_NOTE + " Written from a fixed template."}
         history = clean_history(payload.get("history"), 6)
         previous = next((h["content"] for h in reversed(history) if h["role"] == "user"), "")
         # A question that will be declined must not spend an AI call on the search (the hourly budget is shared).
         sources = [] if screen_question(question) else index.search(f"{previous} {question}", k=5)
-        answer = bot.answer(question, sources, history=history, situation=situation_from(payload.get("age")))
+        answer = bot.answer(question, sources, history=history, situation=situation_from(payload.get("age")), lang=lang)
         offline = bool(answer.error) or (not bot.available and not answer.blocked)
         why = {INVENTED_FIGURE: "used a figure not in the documents", AI_BUSY: "has reached its limit for this hour",
                None: "explainer is offline"}.get(answer.error, "service didn't respond")
         note = f"The AI {why}, so here are the official pages." if offline else None  # the text itself is neutral
         return {"text": answer.text, "sources": source_view(answer.sources), "blocked": answer.blocked,
-                "offline": offline, "note": note}
+                "offline": offline, "note": note, "lang": "en" if offline or answer.blocked else lang}
 
     if kind in {"trends", "towns", "town_photo"}:  # public price and town data: no login, no personal details
         try:
@@ -147,5 +153,26 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
 
     if kind == "summary":
         return {"text": bot.summarise(clean_history(payload.get("history"), 12))}
+
+    if kind == "feedback":  # Helpful / Not helpful on one answer: no AI call, no search
+        rating, question = payload.get("rating"), payload.get("q", "")
+        if rating not in ("up", "down") or not isinstance(question, str) or len(question) > MAX_FEEDBACK_QUESTION:
+            return {"ok": False, "error": "bad feedback"}
+        votes = state.get("votes", 0)
+        if votes >= MAX_VOTES:
+            return {"ok": False, "error": "too many votes"}
+        state["votes"] = votes + 1
+        question = question.strip()
+        # Shaped like an eval/questions.json case; the question is kept only if screening passes it (no NRIC, phone, email).
+        line = json.dumps({"type": "retrieval", "question": "" if screen_question(question) else question,
+                           "expect_docs": [], "expect_words": [], "rating": rating,
+                           "lang": language(payload.get("lang")), "date": time.strftime("%Y-%m-%d")}, ensure_ascii=False)
+        print(f"[runway] feedback {line}", flush=True)  # Streamlit Community Cloud has no lasting disk: the log is the record
+        try:
+            with FEEDBACK_FILE.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except OSError:
+            pass
+        return {"ok": True}
 
     return {"ok": False, "error": f"unknown message: {kind}"}

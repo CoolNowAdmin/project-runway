@@ -86,6 +86,23 @@ Rules you must follow:
 7. Keep answers short: 2 to 6 sentences, or a short list. Use simple words; define CPF terms the first time.
 8. Some passages are from 2019 (when the HDB loan limit was 90%). Current HDB rules use 75%. Prefer the most recent figure and say which year applies if they differ."""
 
+# Answer languages the interface offers (code -> name for the prompt). Anything else is English.
+LANGUAGES = {"en": "English", "zh": "Simplified Chinese", "ms": "Malay", "ta": "Tamil"}
+
+
+def language(code) -> str:
+    return code if isinstance(code, str) and code in LANGUAGES else "en"
+
+
+def language_rule(lang: str) -> str:
+    """Appended to a system prompt. Figures stay as Arabic numerals so the number guard can still check them."""
+    if language(lang) == "en":
+        return ""
+    return (f"\n\nWrite your answer in {LANGUAGES[lang]}. Keep quoted official passages and document titles in English, "
+            "exactly as in the passages. Write every figure (amounts, percentages, years, ages, dates) exactly as in "
+            "the English source, in Arabic numerals 0-9, never in words or other numerals. Keep the [1] citations.")
+
+
 SUMMARY_SYSTEM = """Sum up this chat about HDB resale rules in 3 to 5 short bullet points, in plain English.
 Use only what the chat says. Do not add new figures or advice."""
 
@@ -200,7 +217,7 @@ class LLM:
         return resp.choices[0].message.content.strip()
 
     def answer(
-        self, question: str, sources: list[Chunk], history: list[dict] | None = None, situation: str = ""
+        self, question: str, sources: list[Chunk], history: list[dict] | None = None, situation: str = "", lang: str = "en"
     ) -> Answer:
         reason = screen_question(question)  # screen the user's words only, never the appended situation
         if reason:
@@ -212,7 +229,7 @@ class LLM:
         prompt = f"PASSAGES:\n{format_context(sources)}\n\nQUESTION: {question}"
         recent = (history or [])[-6:]  # last 3 exchanges give follow-up context
         try:
-            text = self._chat(ANSWER_SYSTEM, [*recent, {"role": "user", "content": prompt}])
+            text = self._chat(ANSWER_SYSTEM + language_rule(lang), [*recent, {"role": "user", "content": prompt}])
         except AIBusy:
             return Answer(text=offline_answer(sources), sources=sources, error=AI_BUSY)
         except Exception as exc:  # network/quota errors: show passages and say why
@@ -222,14 +239,14 @@ class LLM:
             return Answer(text=offline_answer(sources), sources=sources, error=INVENTED_FIGURE)
         return Answer(text=text, sources=sources)
 
-    def explain(self, facts: dict[str, str], sources: list[Chunk]) -> tuple[str, bool]:
+    def explain(self, facts: dict[str, str], sources: list[Chunk], lang: str = "en") -> tuple[str, bool]:
         """Returns (explanation, used_llm). Falls back to the template if the model invents a number."""
         facts_text = "\n".join(f"- {k}: {v}" for k, v in facts.items())
         if not self.available:
             return template_explanation(facts), False
         prompt = f"FACTS:\n{facts_text}\n\nRULE PASSAGES:\n{format_context(sources)}"
         try:
-            text = self._chat(EXPLAIN_SYSTEM, [{"role": "user", "content": prompt}], temperature=0.0)
+            text = self._chat(EXPLAIN_SYSTEM + language_rule(lang), [{"role": "user", "content": prompt}], temperature=0.0)
         except Exception as exc:
             print(f"[runway] explanation call failed, using template: {type(exc).__name__}: {exc}")
             return template_explanation(facts), False
