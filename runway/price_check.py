@@ -9,12 +9,11 @@ months. Same street when it has MIN_SALES such sales, otherwise the whole town. 
 from __future__ import annotations
 
 import functools
-import json
 from numbers import Real
 
 import pandas as pd
 
-from runway.game_data import GAME_DIR
+from runway.game_data import map_data
 from runway.trends import PARQUET
 
 WINDOW_MONTHS = 12
@@ -30,7 +29,7 @@ def _type(name: str) -> str:
 @functools.lru_cache(maxsize=1)
 def sales() -> pd.DataFrame:
     """The latest WINDOW_MONTHS of sales: one row each, with the street where map.json has it."""
-    m = json.loads((GAME_DIR / "map.json").read_text())
+    m = map_data()
     rows = [{"town": m["towns"][b["t"]]["id"], "street": b["s"], "month": x[0], "flat_type": _type(x[1]),
              "sqm": float(x[3]), "price": float(x[4]), "lease": float(x[5])} for b in m["recent"] for x in b["x"]]
     recent = pd.DataFrame(rows)

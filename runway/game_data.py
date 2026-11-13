@@ -15,6 +15,13 @@ GAME_DIR = ROOT / "data" / "game"
 PHOTO_DIR = ROOT / "data" / "photos"
 
 
+@functools.lru_cache(maxsize=1)
+def map_data() -> dict:
+    """map.json (~2.5 MB), parsed once per process and shared by every reader. Read-only: callers must not change it."""
+    return json.loads((GAME_DIR / "map.json").read_text())
+
+
+@functools.lru_cache(maxsize=1)
 def _photo_rows() -> list[dict]:
     with (PHOTO_DIR / "landmarks.csv").open(encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
@@ -23,9 +30,14 @@ def _photo_rows() -> list[dict]:
 def _photo(row: dict) -> dict | None:
     path = PHOTO_DIR / row["photo_file"] if row.get("photo_file") else None
     if path and path.exists():
-        img = "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode()
-        return {"img": img, "credit": row["caption"], "landmark": row["landmark"], "url": row["source_url"]}
+        return {"img": _data_uri(str(path)), "credit": row["caption"], "landmark": row["landmark"], "url": row["source_url"]}
     return None
+
+
+@functools.lru_cache(maxsize=64)
+def _data_uri(path: str) -> str:
+    """Each photo is read and encoded once per process, not on every request (26 towns, ~20 KB each)."""
+    return "data:image/jpeg;base64," + base64.b64encode(Path(path).read_bytes()).decode()
 
 
 def load_photos() -> dict[str, dict]:
@@ -41,7 +53,7 @@ def town_photo(town) -> dict | None:
 @functools.lru_cache(maxsize=1)
 def load_towns() -> list[dict]:
     """Each town's lease premium and its number of recent resales, sorted by name. map.json is ~2.5 MB, so once per process."""
-    m = json.loads((GAME_DIR / "map.json").read_text())
+    m = map_data()
     n = [0] * len(m["towns"])
     for r in m["recent"]:
         n[r["t"]] += len(r["x"])
@@ -52,13 +64,13 @@ def load_towns() -> list[dict]:
 @functools.lru_cache(maxsize=1)
 def recent_months() -> list[str]:
     """The months of the map's recent sales ("2026-07", ...), so the page can label the window from the data."""
-    m = json.loads((GAME_DIR / "map.json").read_text())
+    m = map_data()
     return sorted({x[0] for r in m["recent"] for x in r["x"]})
 
 
 def load_game_data() -> dict:
     return {
-        "M": json.loads((GAME_DIR / "map.json").read_text()),
+        "M": map_data(),
         "F": json.loads((GAME_DIR / "features.json").read_text()),
         "PHOTOS": load_photos(),
     }

@@ -53,6 +53,15 @@ def test_save_page_then_restore():
     assert send("save_page", reviewer(), key="../secrets", html="<p>x</p>")["ok"] is False
 
 
+def test_load_content_is_cached_but_never_shared():
+    send("save_page", reviewer(), key="terms", html="<p>T</p>")
+    a = content.load_content()
+    a["pages"]["terms"] = "changed by a caller"
+    assert content.load_content()["pages"]["terms"] == "<p>T</p>"  # the cached copy is untouched
+    send("save_page", reviewer(), key="terms", html="<p>T2</p>")
+    assert content.load_content()["pages"]["terms"] == "<p>T2</p>"  # a new file version is read again
+
+
 def test_save_faq_checks_items():
     items = [{"q": "Q1?", "a": "Answer one.", "title": "T", "publisher": "HDB", "url": "javascript:alert(1)"}]
     r = send("save_faq", reviewer(), items=items)

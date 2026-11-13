@@ -8,7 +8,9 @@ app's disk. data/runtime/ is gitignored: a redeploy pulls the committed copy wit
 from __future__ import annotations
 
 import base64
+import copy
 import datetime as dt
+import functools
 import io
 import json
 import re
@@ -73,10 +75,17 @@ def save(rel_path: str, local: Path, data: bytes, message: str) -> dict:
 # ---------- page text and FAQ ----------
 
 def load_content() -> dict:
-    """The newest copy: this disk's (if a change was made since the last start), else the committed one."""
-    for path in (RUNTIME_CONTENT, CONTENT_FILE):
+    """The newest copy: this disk's (if a change was made since the last start), else the committed one.
+    Runs on every message, and the files rarely change: read once per file version, a fresh copy for each caller."""
+    stamp = tuple((str(p), p.stat().st_mtime_ns if p.exists() else 0) for p in (RUNTIME_CONTENT, CONTENT_FILE))
+    return copy.deepcopy(_read_content(stamp))
+
+
+@functools.lru_cache(maxsize=4)
+def _read_content(stamp: tuple) -> dict:
+    for path, _ in stamp:
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 return {"pages": data.get("pages") or {}, "faq": data.get("faq")}
         except (OSError, ValueError):
