@@ -2468,6 +2468,25 @@ function sub(name){S.sub=name; show('scrSub'); $('#scrSub').scrollTop=0; renderS
 /* ---------- onboarding ---------- */
 const NOTICE = `<p><b>IMPORTANT NOTICE:</b> This web application is a prototype developed for <b>educational purposes only.</b> The information provided here is <b>NOT intended for real-world usage</b> and should not be relied upon for making any decisions, especially those related to financial, legal, or healthcare matters.</p><p><b>Furthermore, please be aware that the LLM may generate inaccurate or incorrect information. You assume full responsibility for how you use any generated output.</b></p><p>Always consult with qualified professionals for accurate and personalised advice.</p>`;
 function dots(i){const n=S.landTown?2:3;return `<div class="dots" aria-label="Step ${i} of ${n}">${[1,2,3].slice(0,n).map(k=>`<i class="${k<=i?'on':''}"></i>`).join('')}</div>`;}
+// The CPF chips plus a typed amount (onboarding and Your details). after() runs whenever S.oa or S.oaSet changes.
+const oaFieldHtml = id => `<label class="label" for="${id}">Or type your CPF OA amount</label>
+  <div class="oaf"><span aria-hidden="true">$</span><input id="${id}" class="inp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${S.oaSet?S.oa.toLocaleString('en-SG'):''}" aria-describedby="${id}Msg"></div>
+  <p class="small" id="${id}Msg" role="alert"></p>`;
+function bindOa(id, after){
+  const oaIn=$('#'+id), oaMsg=$('#'+id+'Msg');
+  const oaShow=()=>{oaIn.value=S.oaSet?S.oa.toLocaleString('en-SG'):'';oaMsg.textContent='';oaIn.removeAttribute('aria-invalid');$$('[data-o]').forEach(x=>x.setAttribute('aria-pressed',S.oaSet?+x.dataset.o===S.oa:x.dataset.o==='skip'));};
+  $$('[data-o]').forEach(c=>c.onclick=()=>{if(c.dataset.o==='skip')S.oaSet=false;else{S.oaSet=true;S.oa=+c.dataset.o;}oaShow();after();});
+  const oaApply=()=>{
+    if(!oaIn.value.trim()&&!S.oaSet){oaShow();return;}  // left empty after "Not sure": nothing to change
+    const n=oaAmount(oaIn.value);
+    if(n===null){const raw=Number(oaIn.value.trim().replace(/^\$\s*/,'').replace(/,/g,''));oaIn.setAttribute('aria-invalid','true');
+      oaMsg.textContent=(raw>2000000?'Type an amount up to $2,000,000.':'Type the amount in dollars, like 123,456.40.')+' Your CPF amount was not changed.';return;}
+    S.oaSet=true;S.oa=n;oaShow();after();
+  };
+  oaIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();oaApply();}});
+  oaIn.addEventListener('change',oaApply);  // on leaving the field, not on every key
+  return oaApply;
+}
 function renderOnb(){
   const b=$('#onbBody'), i=S.onb, back=`<button class="back" type="button" id="onbBack">${ICON.back}Back</button>`;
   if(i===1){
@@ -2480,13 +2499,15 @@ function renderOnb(){
     const opts=[50000,100000,150000,200000,300000];
     b.innerHTML = `${crumbs('Map')}${back}${dots(2)}<h1>About how much CPF do you have?</h1><p class="lead">Ordinary Account, all buyers together. A rough number is fine.</p>
       <div class="chips" data-st="st.pills">${opts.map(o=>`<button type="button" class="chip" data-o="${o}" aria-pressed="${S.oaSet&&S.oa===o}">${exact(o)}</button>`).join('')}<button type="button" class="chip" data-o="skip" aria-pressed="${!S.oaSet}">Not sure</button></div>
+      ${oaFieldHtml('oOa')}
       <button class="btn primary" id="nx">Next</button>`;
-    $$('[data-o]').forEach(c=>c.onclick=()=>{if(c.dataset.o==='skip'){S.oaSet=false;}else{S.oaSet=true;S.oa=+c.dataset.o;} $$('[data-o]').forEach(x=>x.setAttribute('aria-pressed',x===c));});
+    bindOa('oOa',()=>{});
   } else {
     b.innerHTML = `${crumbs('Map')}${back}${dots(3)}<h1>Which town first?</h1><p class="lead">You can change it any time.</p><button type="button" class="btn" id="onbBudget">Not sure? Find towns by budget</button>${townListHtml()}`;
     bindTownList(t=>{S.town=t; finishOnb();}); $('#onbBudget').onclick=openBudget;
   }
-  if($('#nx')) $('#nx').onclick=()=>{if(S.onb===2&&S.landTown){finishOnb();return;} S.onb++; renderOnb(); $('#scrOnb').scrollTop=0;};
+  if($('#nx')) $('#nx').onclick=()=>{if($('#oOa')?.getAttribute('aria-invalid')){$('#oOa').focus();return;}  // a typed amount that didn't parse
+    if(S.onb===2&&S.landTown){finishOnb();return;} S.onb++; renderOnb(); $('#scrOnb').scrollTop=0;};
   $('#onbBack').onclick=()=>{if(S.onb>1){S.onb--; renderOnb();} else show('scrLanding');};
 }
 function finishOnb(){ needFit=true; S.onbDone=true; const a=S.after; S.after=null; if(a) go(a.target,a.arg); else tab('map'); }
@@ -3108,9 +3129,7 @@ function renderSub(){
       <p class="small">Average age decides how long your HDB loan can be.</p>
       <span class="label">CPF Ordinary Account</span>
       <div class="chips">${[50000,100000,150000,200000,300000].map(o=>`<button type="button" class="chip" data-o="${o}" aria-pressed="${S.oaSet&&S.oa===o}">${exact(o)}</button>`).join('')}<button type="button" class="chip" data-o="skip" aria-pressed="${!S.oaSet}">Not sure</button></div>
-      <label class="label" for="dOa">Or type your CPF OA amount</label>
-      <div class="oaf"><span aria-hidden="true">$</span><input id="dOa" class="inp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${S.oaSet?S.oa.toLocaleString('en-SG'):''}" aria-describedby="dOaMsg"></div>
-      <p class="small" id="dOaMsg" role="alert"></p>
+      ${oaFieldHtml('dOa')}
       <h2>For grants and the income cap</h2>
       <p class="small">Optional. These stay in this page: Runway uses them only for the sums on a flat's Upfront cost and More numbers, and never sends them to its server.</p>
       <label class="field"><span>Household income a month, before tax ($)</span><input class="inp" id="dInc" type="number" inputmode="numeric" min="0" step="100" autocomplete="off" value="${S.inc??''}"></label>
@@ -3128,17 +3147,7 @@ function renderSub(){
     // the average can't be below the youngest buyer, so its slider starts at the youngest buyer's age
     const avgSlider=()=>{$('#dVw').innerHTML=sliderHtml('dVwh','Average age of all buyers',S.age,85,S.avg);bindSlider('dVwh',a=>{S.avgSet=S.avg=a;upd();});};
     bindSlider('dAw',a=>{S.age=a;syncAvg();avgSlider();upd();}); avgSlider();
-    const oaIn=$('#dOa'), oaMsg=$('#dOaMsg');
-    const oaShow=()=>{oaIn.value=S.oaSet?S.oa.toLocaleString('en-SG'):'';oaMsg.textContent='';oaIn.removeAttribute('aria-invalid');$$('[data-o]').forEach(x=>x.setAttribute('aria-pressed',S.oaSet?+x.dataset.o===S.oa:x.dataset.o==='skip'));};
-    $$('[data-o]').forEach(c=>c.onclick=()=>{if(c.dataset.o==='skip')S.oaSet=false;else{S.oaSet=true;S.oa=+c.dataset.o;}oaShow();upd();});
-    const oaApply=()=>{
-      const n=oaAmount(oaIn.value);
-      if(n===null){const raw=Number(oaIn.value.trim().replace(/^\$\s*/,'').replace(/,/g,''));oaIn.setAttribute('aria-invalid','true');
-        oaMsg.textContent=(raw>2000000?'Type an amount up to $2,000,000.':'Type the amount in dollars, like 123,456.40.')+' Your CPF amount was not changed.';return;}
-      S.oaSet=true;S.oa=n;oaShow();upd();
-    };
-    oaIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();oaApply();}});
-    oaIn.addEventListener('change',oaApply);  // on leaving the field, not on every key
+    bindOa('dOa',upd);
   } else if(s==='size'){
     b.innerHTML=`${top}<h1>Text size</h1><p>Pick the size that is easiest to read. It lasts for this visit.</p>${sliderHtml('szW','Text size',14,24,textPx(),' px')}
       <p class="notice" style="font-size:inherit;color:var(--ink)">The flat has 55 lease years left. This is how text reads at this size.</p>`;
