@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from runway.costs import grants, hdb_fees, loan_for_instalment, loan_options, stamp_duty
-from runway.cpf_rules import monthly_instalment
+from runway.cpf_rules import flat_money, monthly_instalment
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = (ROOT / "runway_game" / "index.html").read_text()
@@ -86,6 +86,7 @@ def test_interface_costs_match_python(tmp_path):
     prices = [0, 179_999, 180_000, 360_000, 512_345, 1_000_000, 1_500_000, 3_000_000, 4_500_100]
     script = (f"{code}\nconst G={json.dumps(g_cases)}, L={json.dumps(l_cases)}, P={json.dumps(prices)};\n"
               "console.log(JSON.stringify({g:G.map(c=>grants(...c)),l:L.map(c=>loanOptions(...c)),"
+              "c:[cashAtStart(460000,345000,460000,150000),cashAtStart(460000,304091,460000,150000),cashAtStart(500000,200000,90000,150000)],"
               "p:P.map(stampDuty),f:['1-room','2-room','3-room','Executive'].map(hdbFees)}));")
     (tmp_path / "costs.js").write_text(script)
     js = json.loads(subprocess.run([NODE, str(tmp_path / "costs.js")], capture_output=True, text=True, check=True).stdout)
@@ -97,6 +98,9 @@ def test_interface_costs_match_python(tmp_path):
         for k, v in want.items():
             assert got[k] == (pytest.approx(v) if isinstance(v, float) else v), (p, loan, t, inc, hh, rate, k)
     assert js["p"] == pytest.approx([stamp_duty(p) for p in prices])
+    # cash at the start follows the loan shown: uncapped it is flat_money's figure, capped it grows by the cut
+    assert js["c"][0] == flat_money(460_000, 60.8, [50], 150_000).cash_at_start == 0
+    assert js["c"][1] == 460_000 - 304_091 - 150_000 and js["c"][2] == 500_000 - 200_000 - 90_000
     assert js["f"] == [hdb_fees(ft) for ft in ("1-room", "2-room", "3-room", "Executive")]
 
 

@@ -2392,6 +2392,8 @@ function loanOptions(price,loanMax,tenure,inc,hh,bankRate){
   if(bankRate&&loanMax>0){const b=cap==null?loanMax:Math.min(loanMax,pv(cap,tenure,bankRate)); o.bank_loan=b; o.bank_monthly=pmt(b,tenure,bankRate);}
   return o;
 }
+// cpf_rules.flat_money's cash_at_start, for the HDB loan actually shown (the income cap can shrink it)
+const cashAtStart=(price,loan,cap,oa)=>price-loan-Math.min(oa,cap,price-loan);
 const VTXT = {full:'CPF: full use', part:'CPF: part only', none:'CPF: not allowed'};
 const VICON = {full:ICON.ok, part:ICON.half, none:ICON.no};
 function vline(r){
@@ -2414,7 +2416,8 @@ function loanRowsHtml(f,r){
     ${L.hdb_ok?`<dt>HDB loan monthly<small>at 2.6% (MyNiceHome loans guide)</small></dt><dd>${exact(L.hdb_monthly)}</dd>`:''}
     <dt>Bank loan monthly<small>${L.bank_loan==null?'type a rate below':`${esc(String(S.bankRate))}% assumed, ${exact(L.bank_loan)} loan`}</small></dt><dd>${L.bank_loan==null?'–':exact(L.bank_monthly)}</dd>
     <dt>Bank loan, cash at least<small>5% of the price (HDB, loans from banks)</small></dt><dd>${exact(L.bank_cash_min)}</dd>
-    ${L.msr_cap!=null?`<dt>Income cap a month<small>30% of income (HDB loan page)</small></dt><dd>${exact(L.msr_cap)}</dd>`:''}`:''}`;
+    ${L.msr_cap!=null?`<dt>Income cap a month<small>30% of income (HDB loan page)</small></dt><dd>${exact(L.msr_cap)}</dd>`:''}`:''}
+    ${S.oaSet&&(L.hdb_ok||!r.loan)?`<dt>Cash at the start${capped?'<small>with the smaller HDB loan</small>':''}</dt><dd>${exact(L.hdb_ok?cashAtStart(f.price,L.hdb_loan,r.cap,S.oa):r.cashNow)}</dd>`:''}`;
 }
 function upfrontHtml(f){
   const g=grantsReady()&&grants(f.ft,f.lease,S.inc,S.hh,S.first,S.cit,S.par);
@@ -2757,7 +2760,6 @@ function showResult(){
       </div>
       <details class="more"><summary>More numbers</summary>
         <dl class="kv" id="loanRows">${loanRowsHtml(f,r)}</dl>
-        ${S.oaSet?`<dl class="kv"><dt>Cash at the start</dt><dd>${exact(r.cashNow)}</dd></dl>`:''}
         ${r.loan?`<label class="field upfront-rate"><span>Bank rate, your assumption (% a year)</span><input class="inp" id="bankRate" type="number" inputmode="decimal" min="0" max="30" step="0.05" autocomplete="off" value="${S.bankRate??''}"></label>`:''}
         <p class="small" style="margin-top:8px">Simplified. Assumes the price equals the valuation and no grants. The bank loan uses the same amount and length as the HDB loan; banks set their own rates and may lend for up to 30 years or limit loans on short leases (HDB, loans from banks). ${S.inc==null?'Add your income in Your details to apply the 30% income cap. ':''}Check with CPF's housing calculator.</p>
       </details>
