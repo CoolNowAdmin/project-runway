@@ -72,7 +72,15 @@ TOPIC_WORDS = {
     "tenure", "interest", "proximity", "ehg", "seller", "sell", "income", "decay", "pro-rate",
     "prorate", "pro-rated", "coverage", "youngest", "absd", "bsd",
     "year", "minimum", "rule", "rules", "pro-rating", "prorating", "co-own", "owner", "owners",
+    # Malay, for questions asked in the Ask page's other answer languages
+    "rumah", "pinjaman", "pajakan", "geran", "beli", "membeli", "harga", "tunai", "umur", "tahun",
 }
+# Chinese (simplified and traditional) and Tamil have no spaces or inflect, so these match anywhere in the question.
+# shortcut: a short list of housing terms, not a translation of TOPIC_WORDS; add terms if real questions get declined.
+TOPIC_TERMS = (
+    "组屋", "組屋", "公积金", "公積金", "屋契", "地契", "贷款", "貸款", "转售", "轉售", "津贴", "津貼", "印花税", "印花稅",
+    "房", "屋", "வீடு", "வீட்ட", "வீடமைப்பு", "வீவக", "மசேநி", "கடன்", "குத்தகை", "மானிய",
+)
 
 ANSWER_SYSTEM = """You are Ask Runway, an assistant that explains Singapore HDB resale rules in plain English.
 
@@ -157,7 +165,7 @@ def screen_question(question: str) -> str | None:
         return "off_topic"
     words = set(re.findall(r"[a-z0-9\-]+", q))
     words |= {part for w in words for part in w.split("-")}  # "20-year" also counts as "year"
-    if not (words & TOPIC_WORDS or any(w.startswith("eligib") for w in words)):
+    if not (words & TOPIC_WORDS or any(w.startswith("eligib") for w in words) or any(t in q for t in TOPIC_TERMS)):
         return "off_topic"
     return None
 

@@ -182,3 +182,22 @@ def test_privacy_policy_describes_the_feedback_line():
     assert "A vote keeps this question, unless it has personal details" in GAME  # the line next to the buttons
     assert "'feedback',{rating:m.fb.v, lang:m.lang||'en', q:m.fb.q.length<=300?m.fb.q:''}" in GAME
     assert runway.bridge.MAX_FEEDBACK_QUESTION == 300
+
+
+@pytest.mark.parametrize("question", [
+    "公积金能用多少",  # Chinese: how much CPF can be used
+    "轉售組屋的屋契剩下五十年",  # traditional Chinese
+    "Berapa banyak pinjaman untuk rumah ini?",  # Malay
+    "இந்த வீட்டுக்கு மசேநி பயன்படுத்தலாமா?",  # Tamil
+])
+def test_questions_in_the_other_languages_are_on_topic(question):
+    from runway.llm import screen_question
+
+    assert screen_question(question) is None
+
+
+@pytest.mark.parametrize("question", ["今天天气怎么样", "Apa khabar?", "வணக்கம்"])
+def test_off_topic_stays_off_topic_in_other_languages(question):
+    from runway.llm import screen_question
+
+    assert screen_question(question) == "off_topic"
