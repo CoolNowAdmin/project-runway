@@ -125,6 +125,7 @@ def test_game_data_has_every_town_with_a_photo_and_credit():
     towns = {t["id"] for t in data["M"]["towns"]}
     assert len(towns) == 26 and set(data["PHOTOS"]) == towns
     assert all("Wikimedia Commons" in p["credit"] and p["img"].startswith("data:image/jpeg") for p in data["PHOTOS"].values())
+    assert all(p["url"].startswith("https://commons.wikimedia.org/wiki/File:") for p in data["PHOTOS"].values())  # Sources links each
     assert {"roads", "stops", "am"} <= set(data["F"])
 
 
@@ -386,6 +387,32 @@ def test_upload_guard(tmp_path):
     accept = re.search(r'<input type="file" id="upDoc" accept="([^"]+)"', GAME).group(1)
     assert accept.split(",") == [".pdf", ".txt", ".md", ".text"] and "up to 5 MB" in GAME
     assert "uploadProblem(f.name,f.size)" in GAME  # checked before the file is read
+
+
+def js_function(name):
+    """One top-level function from the page, from its first line to its closing brace."""
+    start = GAME.index(f"function {name}(")
+    return GAME[start:GAME.index("\n}\n", start) + 2]
+
+
+@needs_node
+def test_landing_faq_filter_matches_every_word_in_question_or_answer(tmp_path):
+    cases = ["", "   ", "age-95", "LOAN 65", "loan zebra", "valuation limit", "partner younger"]
+    got = node_json(tmp_path, f"{GAME[GAME.index('const FAQ = '):GAME.index('/* end FAQ */')]}\n{js_function('faqFilter')}\n"
+                              f"console.log(JSON.stringify({json.dumps(cases)}.map(t => faqFilter(FAQ, t))));")
+    faq = node_json(tmp_path, GAME[GAME.index("const FAQ = "):GAME.index("/* end FAQ */")] + "\nconsole.log(JSON.stringify(FAQ));")
+    for text, hits in zip(cases, got):
+        words = text.lower().split()
+        assert hits == [i for i, x in enumerate(faq) if all(w in (x["q"] + " " + x["a"]).lower() for w in words)], text
+    assert got[0] == list(range(len(faq))) and got[4] == [] and 0 < len(got[3]) < len(faq)
+
+
+@needs_node
+def test_landing_typed_cpf_amount_rounds_up_and_rejects_the_rest(tmp_path):
+    cases = ["123,456.40", "123456", "$ 50,000", " 0 ", "2,000,000", "1999999.01", "2000000.01", "3000000",
+             "", "abc", "-5", "1.2.3", "12e3", ".5", "100,000.00"]
+    got = node_json(tmp_path, f"{js_function('oaAmount')}\nconsole.log(JSON.stringify({json.dumps(cases)}.map(oaAmount)));")
+    assert got == [123457, 123456, 50000, 0, 2000000, 2000000, None, None, None, None, None, None, None, None, 100000]
 
 
 def test_search_lists_every_page_by_its_name():
