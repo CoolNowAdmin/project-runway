@@ -915,6 +915,13 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .legend svg{width:16px;height:16px}
 .hint{background:var(--brand-deep);color:var(--on-brand);font:600 .944rem/1.45 var(--font-ui);border-radius:16px;padding:12px 14px;text-align:center}
+/* ---- budget search and map filters ---- */
+.fsheet .found .inp{background:var(--field)}
+.fsheet fieldset{border:0;padding:0;margin:0;min-width:0}
+.fsheet legend{padding:0;margin-bottom:6px}
+.fsheet .chip[aria-pressed="true"]::before{content:"✓ "}
+.fsheet .fcount{font:700 .944rem/1.45 var(--font-ui);color:var(--ink);font-variant-numeric:tabular-nums}
+.fsheet .rec p,.fsheet .rec .rh b{font-variant-numeric:tabular-nums}
 
 /* sheets */
 .sheet{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end}
@@ -1691,6 +1698,8 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
           <div class="mapchips">
             <button class="pchip" id="ageChip" type="button" data-st="st.number_input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span></span></button>
             <button class="pchip" id="layerChip" type="button" data-st="st.multiselect (map layers)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 8l10 5 10-5z"/><path d="M2 13l10 5 10-5"/></svg>What to show</button>
+            <button class="pchip" id="filterChip" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filters</button>
+            <button class="pchip" id="budgetChip" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Find by budget</button>
             <button class="pchip matchchip" id="matchChip" type="button" hidden></button>
           </div>
         </div>
@@ -2332,8 +2341,8 @@ function renderOnb(){
       <button class="btn primary" id="nx">Next</button>`;
     $$('[data-o]').forEach(c=>c.onclick=()=>{if(c.dataset.o==='skip'){S.oaSet=false;}else{S.oaSet=true;S.oa=+c.dataset.o;} $$('[data-o]').forEach(x=>x.setAttribute('aria-pressed',x===c));});
   } else {
-    b.innerHTML = `${crumbs('Map')}${back}${dots(3)}<h1>Which town first?</h1><p class="lead">You can change it any time.</p>${townListHtml()}`;
-    bindTownList(t=>{S.town=t; finishOnb();});
+    b.innerHTML = `${crumbs('Map')}${back}${dots(3)}<h1>Which town first?</h1><p class="lead">You can change it any time.</p><button type="button" class="btn" id="onbBudget">Not sure? Find towns by budget</button>${townListHtml()}`;
+    bindTownList(t=>{S.town=t; finishOnb();}); $('#onbBudget').onclick=openBudget;
   }
   if($('#nx')) $('#nx').onclick=()=>{if(S.onb===2&&S.landTown){finishOnb();return;} S.onb++; renderOnb(); $('#scrOnb').scrollTop=0;};
   $('#onbBack').onclick=()=>{if(S.onb>1){S.onb--; renderOnb();} else show('scrLanding');};
@@ -2412,12 +2421,16 @@ function diaSvg(status,ratio,n){
   return `<svg viewBox="0 0 34 34"><defs><clipPath id="${id}"><rect x="0" y="${33-h}" width="34" height="${h}"/></clipPath></defs><path d="${d}" fill="var(--snow)" stroke="${col}" stroke-width="3"/><path d="${d}" fill="${col}" clip-path="url(#${id})"/>${status==='none'?`<path d="M11 11 23 23" stroke="${col}" stroke-width="3"/>`:''}${n>1?`<circle cx="28" cy="6" r="6" fill="var(--brand-deep)"/><text x="28" y="9" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--on-brand)">${n}</text>`:''}</svg>`;
 }
 function blocksInTown(){const by={};(SALES[S.town]||[]).forEach(s=>{const k=s.blk+'|'+s.st;(by[k]=by[k]||[]).push(s);});return Object.values(by);}
-const fits = s => !S.match || ((!S.match.ft||s.ft===S.match.ft) && s.price<=S.match.max);
+const FTS = [...new Set(Object.values(SALES).flat().map(s=>s.ft))].sort();
+const saleFits = (s,cash) => calc(s.price,s.lease).cashNow <= cash;  // mirrors cpf_rules.sale_fits: cash at the start with the largest HDB loan
+// S.match: the map's filters, all optional: {ft, max (price), cpf ('full'|'part'|'none'), cash}
+const fits = s => !S.match || ((!S.match.ft||s.ft===S.match.ft) && !(s.price>S.match.max) && (!S.match.cpf||calc(s.price,s.lease).status===S.match.cpf) && (S.match.cash==null||saleFits(s,S.match.cash)));
+const filterLabel = m => [m.ft, isFinite(m.max)?'up to '+money(m.max):'', m.cpf?VTXT[m.cpf]:'', m.cash!=null?'cash '+money(m.cash):''].filter(Boolean).join(' · ');
 function drawMap(){
   const t=TBY[S.town], m=meter(t);
   $('#tName').textContent=t.name; $('#tLine').innerHTML=`${meterHtml(m.n)} ${m.txt}`;
   $('#ageChip span').textContent=`Youngest buyer: ${S.age}`;
-  const mc=$('#matchChip'); mc.hidden=!S.match; if(S.match) mc.innerHTML=`${esc(S.match.ft||'Any flat')}${isFinite(S.match.max)?` up to ${money(S.match.max)}`:' flats'} <span aria-hidden="true">✕</span>`;
+  const mc=$('#matchChip'); mc.hidden=!S.match; if(S.match) mc.innerHTML=`Clear filters: ${esc(filterLabel(S.match))} <span aria-hidden="true">✕</span>`;
   if(!window.L){  // Leaflet loads on the first map visit (RW.leaflet); the panel says so meanwhile
     $('#rwLoad3').textContent='Drawing the map'; RW.loading(2);
     RW.leaflet().then(()=>{RW.loading(null); if(!$('#scrMap').hidden) drawMap();},
@@ -2437,10 +2450,69 @@ function drawMap(){
     mk.on('click',go).on('keydown',e=>{if(e.originalEvent.key==='Enter'||e.originalEvent.key===' '){e.originalEvent.preventDefault();go();}}); // Leaflet 1.9 pins are tabbable but ignore Enter
     LY.sales.addLayer(mk);
   });
-  const n=(SALES[S.town]||[]).length, nType=(SALES[S.town]||[]).filter(s=>!S.match||!S.match.ft||s.ft===S.match.ft).length;
-  $('#mapHint').textContent = !n?`No sales here in ${SPAN}. Try another town.` : S.match&&!isFinite(S.match.max)?`${nType} recent ${esc(S.match.ft||'')} sales here in ${SPAN}. Tap a bright diamond.` : S.match?`${nMatch} of ${nType} recent ${esc(S.match.ft||'')} sales are within ${money(S.match.max)}. Tap a bright diamond.`:`${n} sales here in ${SPAN}. Drag to look around, tap a diamond.`;
+  const n=(SALES[S.town]||[]).length;
+  $('#mapHint').textContent = !n?`No sales here in ${SPAN}. Try another town.` : S.match&&!nMatch?`None of the ${n} sales here match your filters. Clear filters or try another town.` : S.match?`${nMatch} of ${n} sales here match your filters. Tap a bright diamond.`:`${n} sales here in ${SPAN}. Drag to look around, tap a diamond.`;
 }
 $('#matchChip').onclick=()=>{S.match=null;drawMap();};
+$('#filterChip').onclick=openFilters;
+$('#budgetChip').onclick=openBudget;
+const SELCHEV='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const numIn = id=>{const v=$(id).value.trim(); return v!==''&&+v>=0 ? +v : undefined;};
+function openFilters(){
+  const m=S.match||{};
+  openSheet(`<div class="pad fsheet"><h2 style="font-size:1.6rem">Filter flats</h2><p class="small">Filters stay on when you change town.</p>
+    <div class="found">
+      <label>Flat type<span class="lselw"><select class="inp" id="fFt"><option value="">Any</option>${FTS.map(x=>`<option ${x===m.ft?'selected':''}>${esc(x)}</option>`).join('')}</select>${SELCHEV}</span></label>
+      <label>Highest price ($)<input class="inp" type="number" inputmode="numeric" min="0" step="10000" id="fMax" placeholder="Any" value="${isFinite(m.max)?m.max:''}"></label>
+      <label style="grid-column:1/-1">Cash you have ($)<input class="inp" type="number" inputmode="numeric" min="0" step="5000" id="fCash" placeholder="Any" value="${m.cash??''}"></label>
+    </div>
+    <p class="small">Cash you need at the start assumes the largest HDB loan and ${S.oaSet?`your CPF of ${exact(S.oa)}`:'no CPF, as you have not given it'}.</p>
+    <fieldset><legend class="label">CPF</legend><div class="chips">${[['','Any'],['full','Full use'],['part','Part only'],['none','Not allowed']].map(([k,l])=>`<button type="button" class="chip" data-cpf="${k}" aria-pressed="${(m.cpf||'')===k}">${l}</button>`).join('')}</div></fieldset>
+    <p class="fcount" id="fCount" aria-live="polite"></p>
+    <button class="btn primary" type="button" data-closesheet>Done</button><button class="btn" type="button" id="fClear">Clear filters</button></div>`,bindFilters);
+}
+function bindFilters(){
+  let cpf=(S.match&&S.match.cpf)||'';
+  const apply=()=>{
+    const m={}, ft=$('#fFt').value, max=numIn('#fMax'), cash=numIn('#fCash');
+    if(ft)m.ft=ft; if(max!=null)m.max=max; if(cpf)m.cpf=cpf; if(cash!=null)m.cash=cash;
+    S.match=Object.keys(m).length?m:null; drawMap();
+    const all=SALES[S.town]||[], k=all.filter(fits).length, tn=TBY[S.town].name;
+    $('#fCount').textContent=!S.match?`No filters on: all ${all.length} recent sales in ${tn} are shown.`:k?`${k} of ${all.length} recent sales in ${tn} match.`:`None of the ${all.length} recent sales in ${tn} match. Loosen a filter or clear them.`;
+  };
+  $('#fFt').onchange=apply; $('#fMax').oninput=apply; $('#fCash').oninput=apply;
+  $$('[data-cpf]').forEach(b=>b.onclick=()=>{cpf=b.dataset.cpf; $$('[data-cpf]').forEach(x=>x.setAttribute('aria-pressed',x===b)); apply();});
+  $('#fClear').onclick=()=>{S.match=null; closeSheet(); drawMap();};
+  apply();
+}
+// Budget-first search: which towns and flat types fit the buyer's cash and CPF, counted with calc() over every recent sale
+function openBudget(){
+  openSheet(`<div class="pad fsheet"><h2 style="font-size:1.6rem">Find flats by budget</h2><p class="small">Runway checks every flat sold in ${SPAN} with its calculator. What you type stays in this browser.</p>
+    <form class="found" id="bForm" novalidate>
+      <label>Youngest buyer's age<input class="inp" type="number" inputmode="numeric" min="21" max="85" id="bAge" value="${S.age}"></label>
+      <label>Cash you have ($)<input class="inp" type="number" inputmode="numeric" min="0" step="5000" id="bCash" value="${S.cash??''}"></label>
+      <label>CPF Ordinary Account ($)<input class="inp" type="number" inputmode="numeric" min="0" step="5000" id="bOa" placeholder="Not sure" value="${S.oaSet?S.oa:''}"></label>
+      <label>Flat type<span class="lselw"><select class="inp" id="bFt"><option value="">Any</option>${FTS.map(x=>`<option>${esc(x)}</option>`).join('')}</select>${SELCHEV}</span></label>
+      <button class="btn primary" type="submit" style="grid-column:1/-1">Find towns</button>
+    </form>
+    <div id="bOut" aria-live="polite" style="display:flex;flex-direction:column;gap:10px"></div></div>`,()=>{
+    $('#bForm').onsubmit=e=>{e.preventDefault(); budgetResults();};
+    $('#bOut').onclick=e=>{const b=e.target.closest('[data-bt]'); if(!b) return; S.town=b.dataset.bt; S.match={ft:b.dataset.ft,cash:S.cash}; needFit=true; if(S.onbDone) tab('map'); else finishOnb();};
+  });
+}
+function budgetResults(){
+  const out=$('#bOut'), cash=numIn('#bCash'), oa=numIn('#bOa'), ft=$('#bFt').value||null;
+  if(cash==null){out.innerHTML='<p class="fcount">Enter the cash you have, in dollars. Type 0 if none.</p>'; $('#bCash').focus(); return;}
+  S.age=Math.max(21,Math.min(85,Math.round(numIn('#bAge'))||S.age)); S.ageSet=true; syncAvg(); $('#bAge').value=S.age;
+  S.oaSet=oa!=null; if(S.oaSet) S.oa=oa; S.cash=cash; S.dirty=true; sideProf();
+  const r=recommend({age:S.age,cash,ft,towns:[]}).filter(x=>x.afford).slice(0,5);
+  out.innerHTML=`<p class="fcount">You need ${needYrs()} of lease to use CPF fully.</p>
+    ${r.length?r.map((x,i)=>`<div class="rec"><div class="rh"><b>${i+1}. ${esc(x.t.name)} · ${esc(x.ft)}</b></div>
+      <p><b style="color:var(--ink)">${x.afford} of ${x.n}</b> recent sales need ${money(cash)} or less in cash at the start; ${x.good} of them keep full CPF. Typical price ${money(x.medP)}, typical lease ${Math.round(x.medL)} years.</p>
+      <button type="button" class="btn sm" data-bt="${x.t.id}" data-ft="${esc(x.ft)}">See these flats on the map</button></div>`).join('')
+    :`<div class="empty"><p>None of the recent ${ft?esc(ft)+' ':''}sales can be bought with ${money(cash)} in cash${S.oaSet?` and ${money(S.oa)} of CPF`:''}. Try any flat type${S.oaSet?'':', add your CPF'} or more cash.</p></div>`}
+    <p class="small">Cash at the start assumes the largest HDB loan, with your CPF paying first. Counted by Runway's calculator, not by the AI. Your age and CPF now apply across the app.</p>`;
+}
 $('#layerChip').onclick=()=>openSheet(`<div class="pad"><h2 style="font-size:1.6rem">What to show on the map</h2><p class="small">Roads, blocks and town lines are always shown. Bus stops appear when you zoom in.</p><div class="layers">${LAYERDEF.map(([k,l,c,svg])=>`<button type="button" class="layer" data-ly="${k}" aria-pressed="${!!S.layers[k]}"><span class="sw" style="background:${c}"><svg viewBox="0 0 24 24">${svg}</svg></span>${l}<span class="tg" aria-hidden="true"></span></button>`).join('')}</div><button class="btn primary" data-closesheet>Done</button></div>`,()=>$$('[data-ly]').forEach(b=>b.onclick=()=>{const k=b.dataset.ly;S.layers[k]=!S.layers[k];b.setAttribute('aria-pressed',S.layers[k]);applyLayers();}));
 function openBlock(g){
   const s=g[0];
@@ -2709,12 +2781,13 @@ async function handleDoc(name,getText){
 const median=a=>{const b=a.slice().sort((x,y)=>x-y);return b.length?b[Math.floor(b.length/2)]:0;};
 function recommend(p){
   const need=95-p.age, out=[];
-  TOWNS.forEach(t=>{
-    const all=(SALES[t.id]||[]).filter(s=>s.ft===p.ft); if(all.length<3) return;
-    const afford=all.filter(s=>s.price<=p.budget), good=afford.filter(s=>s.lease>20&&s.lease>=need);
+  // p.budget (Ask upload): a price limit, one flat type. p.cash (Find by budget): saleFits, and every flat type unless p.ft
+  TOWNS.forEach(t=>(p.ft?[p.ft]:FTS).forEach(ft=>{
+    const all=(SALES[t.id]||[]).filter(s=>s.ft===ft); if(all.length<3) return;
+    const afford=all.filter(s=>p.cash==null?s.price<=p.budget:saleFits(s,p.cash)), good=afford.filter(s=>s.lease>20&&s.lease>=need);
     const pref=p.towns.includes(t.id);
-    out.push({t,n:all.length,afford:afford.length,good:good.length,medP:median(all.map(s=>s.price)),medL:median(all.map(s=>s.lease)),pref,score:good.length/all.length*60+afford.length/all.length*30+(pref?15:0)});
-  });
+    out.push({t,ft,n:all.length,afford:afford.length,good:good.length,medP:median(all.map(s=>s.price)),medL:median(all.map(s=>s.lease)),pref,score:p.cash==null?good.length/all.length*60+afford.length/all.length*30+(pref?15:0):afford.length+good.length/1e4});  // cash: most sales that fit, then most with full CPF
+  }));
   return out.sort((a,b)=>b.score-a.score);
 }
 function findTowns(n){
@@ -2981,6 +3054,8 @@ function privacyHtml(){
     <li>Your file is read in this browser and is not uploaded. PDF files are read with PDF.js, which the page downloads from cdnjs.cloudflare.com; your file is not sent there.</li>
     <li>Names, NRIC numbers, phone numbers and email addresses are removed in the browser before Runway looks for your age, budget, CPF and flat type.</li>
     <li>Nothing from the file, not even its name, is sent to Runway's server, and nothing is kept after you leave the page. If you press "Find towns for me", the age, average age and CPF amount you confirmed become your details for this visit, and the age can go with later questions as described above.</li></ul>
+  <h2>Finding flats by budget and map filters</h2><ul>
+    <li>The age, cash and CPF amount you give in "Find by budget", and the map's filters, are used in this browser only: they are never put in the page address or sent to Runway's server. The cash amount is forgotten when you leave the page. The age and CPF amount become your details for this visit, and the age can go with later questions as described above.</li></ul>
   <h2>Logging in</h2><ul>
     <li>Logging in is only for invited reviewers. The username and password go to Runway's server, which checks them against salted password hashes kept in the app's private settings. Runway does not store or log the password.</li>
     <li>To slow down guessing, the server counts failed attempts for each username in memory and pauses that username for one minute after five.</li></ul>
