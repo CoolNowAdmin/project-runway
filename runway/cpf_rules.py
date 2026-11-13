@@ -106,6 +106,13 @@ def flat_money(price: float, remaining_lease: float, buyer_ages: list[int], cpf_
     )
 
 
+def resale_exit(remaining_lease: float, years_held: float, next_buyer_age: int) -> tuple[float, float, LeaseCheck]:
+    """When you sell after years_held: lease left then, the youngest age that still gets full CPF
+    (lease covers them to 95), and the same rule applied to a buyer of next_buyer_age."""
+    left = max(0.0, remaining_lease - years_held)
+    return left, COVER_TO_AGE - left, check_lease(next_buyer_age, left)
+
+
 def lease_needed_for_full_cpf(youngest_age: int) -> int:
     """Remaining lease that covers the youngest buyer to 95, so CPF can be used in full."""
     return COVER_TO_AGE - youngest_age

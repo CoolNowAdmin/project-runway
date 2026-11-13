@@ -2489,12 +2489,49 @@ function openEnc(f){
     </div>
     <div class="pad" style="padding-top:12px" data-st="st.dialog">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="price">${exact(f.price)}</span><span class="small">sold ${esc(f.m)}</span></div>
+      <div class="notice" id="priceChk" aria-live="polite" style="margin:10px 0 14px">Checking recent sales of similar flats…</div>
       <div class="leasebar"><div class="lh"><span class="label">Lease left</span><span class="lv">${Math.floor(f.lease)} years</span></div><div class="hp" role="img" aria-label="${Math.floor(f.lease)} of 99 years"><i style="width:0" data-w="${lpct}"></i></div><span class="small">Started ${esc(f.lc)}. Leases are 99 years.</span></div>
       <div id="encResult"><button class="btn primary" id="checkBtn" data-st="st.button → rules.py" style="width:100%">Check for age ${S.age}</button></div>
     </div>`, ()=>{
       requestAnimationFrame(()=>{const i=$('.hp i'); if(i) i.style.width=i.dataset.w+'%';});
       $('#checkBtn').onclick=showResult;
     });
+  priceCheck(f);
+}
+// Price check: the median comes from runway/price_check.py (HDB resale prices, data.gov.sg), never from the AI.
+// Only this public sale's town, street, flat type, size, lease and price go to the server.
+function priceCheck(f){
+  const box=()=>S.enc===f&&$('#priceChk');  // the buyer may have moved on to another flat
+  RW.send('price_check',{town:f.town,st:f.st,ft:f.ft,sqm:f.sqm,lease:f.lease,price:f.price}).then(r=>{
+    const b=box(); if(!b) return; if(!r||!r.ok) throw r;
+    const like=`${esc(f.ft)} flats ${r.level==='street'?'on '+esc(f.st):'in '+esc(TBY[f.town].name)} with ${r.lease_from}–${r.lease_to} years left`;
+    b.innerHTML = r.enough
+      ? `<span class="label">Price check</span><b class="ui" style="color:var(--ink)">${r.verdict==='in line'?`In line with similar sales (${r.pct>0?r.pct+'% above':r.pct<0?-r.pct+'% below':'no difference'})`:`${Math.abs(r.pct)}% ${r.verdict} similar sales`}</b>
+        <span>This flat: ${exact(r.psm)} per sqm. Typical: ${exact(r.typical_psm)} per sqm, the median of ${r.n} sales of ${like}, ${monthSpan([r.first,r.last])}.</span>
+        <span class="small">Within 5% counts as in line. From HDB resale prices (data.gov.sg). Not a valuation.</span>`
+      : `<span class="label">Price check</span><span>Not enough recent sales to compare: ${r.n} sale${r.n===1?'':'s'} of ${like} in the last ${r.months} months.</span><span class="small">From HDB resale prices (data.gov.sg).</span>`;
+  }).catch(()=>{const b=box(); if(b) b.textContent='Price check is unavailable right now.';});
+}
+// Resale exit: the same age-95 rule as calc() (runway/cpf_rules.py resale_exit), applied to whoever buys from you later.
+function resaleExit(lease, yrs, age){const left=Math.max(0,lease-yrs), share=left<=20?0:age+left>=95?1:(left-20)/(95-age-20); return {left, full:95-left, share, ltv:.75*share};}
+const EXIT_AGE=30;  // an example next buyer, not a rule
+function exitView(f){
+  const box=$('#exitBox'); if(!box) return;
+  box.innerHTML=`<h3 id="exitH" style="font-size:1.05rem;color:var(--ink)">When you sell</h3>
+    <p>A short lease also limits whoever buys the flat from you. How many years until you sell?</p>
+    <div class="chips" role="group" aria-labelledby="exitH">${[5,10,15,20].map(n=>`<button type="button" class="chip" data-exit="${n}" aria-pressed="${n===5}">In ${n} years</button>`).join('')}</div>
+    <div id="exitOut" aria-live="polite"></div>
+    <p class="small">Rule: CPF Board, “How much CPF savings can I use … lease does not cover the youngest buyer to age 95?” and HDB, “Housing loan from HDB”. The buyer aged ${EXIT_AGE} is only an example. Most flats can be sold on the open market only after the 5-year minimum occupation period (HDB, “Conditions after buying a resale flat”).</p>`;
+  const upd=y=>{
+    const e=resaleExit(f.lease,y,EXIT_AGE), left=Math.floor(e.left);
+    box.querySelectorAll('[data-exit]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.exit===y));
+    $('#exitOut').innerHTML = e.left<=20
+      ? `<p><b style="color:var(--ink)">Only ${left} year${left===1?'':'s'} would be left.</b> With 20 years or less, a buyer can't use CPF or take an HDB loan for this flat.</p>`
+      : `<dl class="kv"><dt>Lease left when you sell</dt><dd>${left} years</dd><dt>Full CPF for a buyer aged</dt><dd>${Math.ceil(e.full)} or older</dd>
+        <dt>A buyer aged ${EXIT_AGE} can use CPF</dt><dd>${e.share>=1?'in full':Math.floor(e.share*100)+'% of the Valuation Limit'}</dd><dt>Their HDB loan, up to</dt><dd>${Math.floor(e.ltv*100)}% of the price</dd></dl>`;
+  };
+  box.querySelectorAll('[data-exit]').forEach(b=>b.onclick=()=>upd(+b.dataset.exit));
+  upd(5);
 }
 function showResult(){
   const f=S.enc, r=calc(f.price,f.lease); S.checked=true;
@@ -2524,6 +2561,7 @@ function showResult(){
         <p class="small" style="margin-top:8px">Simplified. Assumes the price equals the valuation, a 2.6% HDB rate, and no grants. Check with CPF's housing calculator.</p>
       </details>
     </div>
+    <section class="notice" id="exitBox" aria-labelledby="exitH" style="margin-top:14px"></section>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
       <button class="btn primary" id="keepBtn" ${kept?'disabled':''} data-st="st.button → session_state.shortlist">${ICON.keep}${kept?'In your shortlist':'Keep in shortlist'}</button>
       <div class="row"><button class="btn" id="whyBtn">${ICON.q}Why?</button><button class="btn ghost" id="nextBtn">${ICON.next}Next flat</button></div>
@@ -2532,6 +2570,7 @@ function showResult(){
   $('#keepBtn').onclick=keep;
   $('#whyBtn').onclick=()=>{const q=`Why is my CPF ${r.status==='full'?'not cut':'cut'} for Blk ${f.blk} ${f.st}?`; tab('ask'); ask(q,{f,r});};
   $('#nextBtn').onclick=()=>{const L2=SALES[f.town]||[f];const i=L2.findIndex(p=>p.key===f.key);const nx=L2[(i+1)%L2.length];openEnc(nx);if(LM)LM.panTo([nx.la,nx.ln]);};
+  exitView(f);
 }
 function keep(){
   const f=S.enc; if(S.list.some(x=>x.key===f.key)) return;
@@ -2984,6 +3023,8 @@ function privacyHtml(){
   <h2>Logging in</h2><ul>
     <li>Logging in is only for invited reviewers. The username and password go to Runway's server, which checks them against salted password hashes kept in the app's private settings. Runway does not store or log the password.</li>
     <li>To slow down guessing, the server counts failed attempts for each username in memory and pauses that username for one minute after five.</li></ul>
+  <h2>Price check on a flat</h2><ul>
+    <li>When you open a flat on the map, the page sends Runway's server that sale's town, street, flat type, floor area, remaining lease and price, all from the public sales on the map, to compare it with similar sales. Nothing you typed goes with it: not your age, not your CPF.</li></ul>
   <h2>What the server keeps</h2><ul>
     <li>While your page is open, the server keeps your session in memory: the replies it has sent you, whether you are logged in, and whether the map data has been sent. Nothing is written to a database, and the session is gone when it ends, for example when you reload or close the page.</li>
     <li>Runway's code writes to the server log only when something fails: the kind of request and the error. It does not write your questions or files to the log.</li></ul>
