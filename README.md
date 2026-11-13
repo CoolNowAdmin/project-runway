@@ -12,17 +12,18 @@ costs in each town you're considering, and explains the result in plain English 
 
 ## What's in the app
 
-The interface in `runway_game/index.html` is the approved design hand-off, running full-window inside Streamlit. One left navigation (Home, Map, Shortlist, Trends, Ask, More, Log in) is on every screen: a fixed sidebar on wide screens, a drawer behind the menu button on phones. Every screen has its own address (`/`, `/map`, `/shortlist`, `/trends`, `/ask`, `/more`, and `/details`, `/text-size`, `/about`, `/how-it-works`, `/sources`, `/faq`, `/case-study`, `/privacy`, `/terms` under More), so reloads, shared links and Back/Forward work; addresses carry page names only, never anything you type. Every inner page has a breadcrumb back to Home, the navigation has a site search (pages, FAQ questions and towns, in the browser only), and an unknown address opens Home with a "Page not found" notice.
+The interface in `runway_game/index.html` is the approved design hand-off, running full-window inside Streamlit. One left navigation (Home, Map, Shortlist, Trends, Ask, More, Log in) is on every screen: a fixed sidebar on wide screens, a drawer behind the menu button on phones. Every screen has its own address (`/`, `/map`, `/shortlist`, `/trends`, `/ask`, `/more`, and `/details`, `/text-size`, `/about`, `/how-it-works`, `/sources`, `/faq`, `/timeline`, `/case-study`, `/privacy`, `/terms` under More), so reloads, shared links and Back/Forward work; addresses carry page names only, never anything you type. Every inner page has a breadcrumb back to Home, the navigation has a site search (pages, FAQ questions and towns, in the browser only), and an unknown address opens Home with a "Page not found" notice.
 
 | Screen | What it does |
 |---|---|
 | **Home page** | Landing page, Ask Runway first: a question box (**Ask Runway** asks it on the Ask page) beside one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, the device's system font (Anton only for the RUNWAY wordmark), as set out in `DESIGN.md`. **Log in** in the navigation opens the reviewer login over the page. |
 | **Setup** | Youngest buyer's age, rough CPF, first town. No names or NRIC. |
-| **Map** (use case 1) | Town Safari: every HDB block, MRT lines and the flats sold in Jul–Sep 2026. Tap a diamond for the verdict, runway bar, CPF you can use and cash you need. Keep, Why?, Next flat. |
-| **Shortlist** | Kept flats recalculated for your details, CSV download, and 26 town stamps with Wikimedia Commons photos. |
+| **Map** (use case 1) | Town Safari: every HDB block, MRT lines and the flats sold in Jul–Sep 2026. Tap a diamond for the verdict, runway bar, CPF you can use and cash you need. Keep, Why?, Next flat. **Find by budget** ranks towns and flat types by how many recent sales your cash and CPF cover; **Filters** narrow the diamonds by flat type, price, cash and CPF verdict. |
+| **Flat result** | Opened from a diamond. A price check against similar recent sales (same town and flat type, lease within 5 years, last 12 months, from `runway/price_check.py`); Buyer's Stamp Duty, HDB fees and the grants you may get once you add income and household details; an HDB loan beside a bank loan at a rate you type, with the 30% income cap; and what the lease means for whoever buys from you in 5 to 20 years. Every figure names its document in `data/corpus/`. |
+| **Shortlist** | Kept flats recalculated for your details, two or three of them side by side in a table, a printable summary, CSV download, and 26 town stamps with Wikimedia Commons photos. |
 | **Trends** | Public price charts, no login or setup needed. Compare median resale price or price per sqm by town since 1990 (up to 5 places, by flat type and period), and what remaining lease does to price. Numbers are built from `data/resale.parquet` by `runway/trends.py`; each chart has a table view. |
-| **Ask** (use case 2) | Answers from 32 official documents with sources, "Why?" for a flat, chat summary, read-aloud, and document upload that suggests towns. |
-| **More** | Your details (with a reset), text size, About Us (with the required notice), How it works (flowcharts), Sources and credits, an FAQ whose answers each cite one document in `data/corpus/`, a case study worked out live from the Trends data, the Privacy Policy and the Terms. Visitors browse as guests and see short versions; logging in as `reviewer` shows the full About Us and How it works. |
+| **Ask** (use case 2) | Answers from 32 official documents with sources, "Why?" for a flat, chat summary, read-aloud, and document upload that suggests towns. Answers, read-aloud and voice input in English, Chinese, Malay or Tamil (official quotes and figures stay in English; the rest of the interface is English). Helpful / Not helpful under each AI answer: a vote writes one line to the server log and to `data/feedback.jsonl` where the disk is writable, with the question kept only if it has no personal details. |
+| **More** | Your details (with a reset), text size, About Us (with the required notice), How it works (flowcharts), Sources and credits, an FAQ whose answers each cite one document in `data/corpus/`, a buying timeline (`/timeline`) from the HFE letter to completion with a source for every step, a case study worked out live from the Trends data, the Privacy Policy and the Terms. Visitors browse as guests and see short versions; logging in as `reviewer` shows the full About Us and How it works. |
 
 Python (`runway/bridge.py`) checks the reviewer login, sends the map data after the home page loads, and answers questions
 (`runway/rag.py` + `runway/llm.py`). The map's calculator runs in the browser and is tested against
@@ -71,6 +72,8 @@ runway_game/assets/    home page photos (Wikimedia Commons, credited on the page
 DESIGN.md              colours, type, spacing and copy rules for the interface
 runway/bridge.py       sign-in, ask, why, summary, trends, towns, town_photo and nav (page URL) messages
 runway/cpf_rules.py    age-95 rule, CPF share, HDB loan limit, loan tenure (Python reference)
+runway/costs.py        stamp duty, HDB fees, grants, HDB and bank loan under the income cap
+runway/price_check.py  one flat's price per sqm against similar recent sales
 runway/rag.py          chunking, BM25 + embedding search, reciprocal rank fusion
 runway/llm.py          prompts, question screening, number guard, OpenAI calls
 runway/auth.py         password hashing and checks
@@ -95,6 +98,13 @@ left gives 70% / 90% / 100%) and CPF Board's FAQ. The lease premium reproduces t
 ## Data and licences
 
 - HDB resale flat prices, [data.gov.sg](https://data.gov.sg/collections/189/view), Singapore Open Data Licence.
-  Rebuild `data/resale.parquet` with `python scripts/build_dataset.py <folder with the 5 CSVs>`.
+  Rebuild `data/resale.parquet` with `python scripts/build_dataset.py <folder with the 5 CSVs>`, or run
+  `python scripts/refresh_data.py` to download the five files and rebuild in one step.
+- **Monthly refresh.** The "Data refresh" GitHub workflow runs `refresh_data.py` on the 3rd of each month, runs the
+  tests and opens a pull request with the new `data/resale.parquet` and `data/dataset_meta.json`. It never pushes to
+  `main`, so nothing deploys until the pull request is merged. It needs the repository setting "Allow GitHub Actions
+  to create and approve pull requests". Trends and the home page figures follow the new data; the map's Jul–Sep 2026
+  sales and each town's lease effect stay as they are, because `data/game/` came from the design hand-off and has no
+  build script. The transaction count in this file is as at Sep 2026.
 - Rules documents: public pages from CPF Board, HDB, MND, MOM, IRAS and CEA, retrieved 16 Oct 2026. Each file in
   `data/corpus/` records its source URL.
