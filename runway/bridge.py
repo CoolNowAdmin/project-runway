@@ -145,6 +145,17 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
             traceback.print_exc()
             return {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:200]}
 
+    if kind == "price_check":  # one public sale from the map (town, street, type, size, lease, price), nothing the user typed
+        try:
+            from runway.price_check import price_check  # pandas loads on first use, as for Trends
+
+            return {"ok": True, **price_check(payload)}
+        except ValueError:
+            return {"ok": False, "error": "bad flat"}
+        except Exception as exc:  # as for trends: say what failed, in the log and on the page
+            traceback.print_exc()
+            return {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:200]}
+
     if kind == "summary":
         return {"text": bot.summarise(clean_history(payload.get("history"), 12))}
 
