@@ -50,14 +50,19 @@ def game_data() -> dict:
     return load_game_data()
 
 
-@st.cache_resource(show_spinner=False)
-def llm() -> LLM:
+# Streamlit Community Cloud keeps the process running across a redeploy, so a cached object would stay an instance of
+# the old code (and fail when the new code calls it differently). The newest file time makes a redeploy build new ones.
+CODE = max(p.stat().st_mtime for p in (HERE / "runway").glob("*.py"))
+
+
+@st.cache_resource(show_spinner=False, max_entries=1)
+def llm(code: float) -> LLM:
     return LLM()
 
 
-@st.cache_resource(show_spinner=False)
-def retriever() -> Retriever:
-    chunks, bot = load_chunks(), llm()
+@st.cache_resource(show_spinner=False, max_entries=1)
+def retriever(code: float) -> Retriever:
+    chunks, bot = load_chunks(), llm(code)
     if bot.available:
         try:
             return Retriever(chunks, embed=bot.embed)
@@ -117,7 +122,7 @@ if isinstance(msg, dict) and isinstance(msg.get("id"), str) and len(msg["id"]) <
         handled.clear()
     handled.add(msg["id"])
     try:
-        reply = handle(msg, state, configured_users(), llm(), retriever())
+        reply = handle(msg, state, configured_users(), llm(CODE), retriever(CODE))
     except Exception as exc:  # always answer: without a reply the interface waits 90 s
         print(f"[runway] {str(msg.get('type'))[:40]!r} failed: {type(exc).__name__}: {exc}")
         reply = {"ok": False, "error": "Something went wrong. Try again."}

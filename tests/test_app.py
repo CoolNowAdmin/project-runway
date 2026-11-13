@@ -516,3 +516,26 @@ def test_interface_only_trusts_its_host_and_verified_scripts():
         assert url.count(".") and "@" not in url  # exact versions only
     loads = len(re.findall(r"loadScript\(V\+'[\w.]+\.js','sha512-[A-Za-z0-9+/=]{88}'\)", GAME))
     assert loads == 2 and "s.integrity = 'sha512-" in GAME and "loadScript(src,sri)" in GAME  # pdf.js ×2, Leaflet
+
+
+def test_a_redeploy_rebuilds_the_cached_ai(monkeypatch):
+    """Streamlit Cloud keeps the process across a redeploy: the AI objects are cached per code version, so a new
+    version never calls an instance of the old class (the live Ask page returned empty answers when it did)."""
+    import streamlit as st
+
+    seen = []
+    monkeypatch.setattr("runway.llm.LLM.answer", lambda self, *a, **k: seen.append(k.get("lang")) or __import__("runway.llm").llm.Answer(text="ok", sources=[]))
+    fake_component(monkeypatch, {"id": "a1", "type": "ask", "payload": {"q": "Can I use CPF for an old flat?", "lang": "zh"}})
+    st.cache_resource.clear()
+    at = AppTest.from_file("app.py", default_timeout=60)
+    at.run()
+    assert not at.exception and seen == ["zh"]
+    assert at.session_state["replies"][-1]["value"]["text"] == "ok"
+    app = (ROOT / "app.py").read_text()
+    assert "llm(CODE)" in app and "retriever(CODE)" in app and 'glob("*.py")' in app
+
+
+def test_ask_never_shows_an_empty_answer():
+    """A failed server reply ({"ok": False, "error": ...}) has no text: the chat says so instead of an empty bubble."""
+    ask = GAME[GAME.index("async function ask("):GAME.index("const SPK=")]
+    assert "typeof r.text !== 'string'" in ask and ask.index("typeof r.text") < ask.index("md(r.text)")
