@@ -800,18 +800,12 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .dots i{width:28px;height:6px;border-radius:3px;background:var(--line)}
 .dots i.on{background:var(--green)}
 .onb .lead{font-size:.944rem;color:var(--ink-2)}
-/* wheel picker (wheelHtml): rows snap to a filled centre band and fade toward the edges; the ring sits on the frame, outside the mask */
-.wheel{position:relative;width:min(100%,280px);flex:none;border-radius:var(--radius-btn);background:var(--field)}
-.wheel::before{content:"";position:absolute;left:6px;right:6px;top:calc(50% - 22px);height:44px;border-radius:var(--radius-chip);background:var(--tint-2);pointer-events:none}
-.wheel-s{position:relative;height:220px;padding-block:88px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-mask-image:linear-gradient(rgba(0,0,0,.2),#000 40%,#000 60%,rgba(0,0,0,.2));mask-image:linear-gradient(rgba(0,0,0,.2),#000 40%,#000 60%,rgba(0,0,0,.2))}
-.wheel-s::-webkit-scrollbar{display:none}
-.wheel-s:focus-visible{outline:0}
-.wheel:has(.wheel-s:focus-visible){outline:2px solid var(--green);outline-offset:3px}
-.wheel-s>[role=option]{height:44px;display:grid;place-items:center;scroll-snap-align:center;font:400 .944rem var(--font-ui);color:var(--ink-2);cursor:pointer;user-select:none}
-.wheel-s>[aria-selected=true]{font-weight:700;color:var(--green)}
-.wheel.w3 .wheel-s{height:132px;padding-block:44px}
+/* number slider (sliderHtml): the value large above a native range input, its two ends labelled below */
+.numpick{display:flex;flex-direction:column;gap:6px;width:100%}
+.numpick-v{font:700 2.4rem/1 var(--font-display);letter-spacing:var(--track-display);color:var(--green);font-variant-numeric:tabular-nums}
+.numpick .lends{font-size:.722rem}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-/* chips and quick picks: Home's .lpick; a selected single choice is green with snow text */
+/* chips: a selected single choice is green with snow text */
 .chip{border:0;background:var(--tint);border-radius:var(--radius-chip);padding:6px 14px;min-height:44px;min-width:54px;font:700 .833rem/1.3 var(--font-ui);color:var(--green)}
 .chip[aria-pressed="true"]{background:var(--green);color:var(--snow)}
 .notice{background:var(--beige-2);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:.833rem;line-height:1.6;color:var(--ink-2)}
@@ -929,6 +923,7 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .hint{background:var(--brand-deep);color:var(--on-brand);font:600 .944rem/1.45 var(--font-ui);border-radius:16px;padding:12px 14px;text-align:center}
 /* ---- budget search and map filters ---- */
 .fsheet .found .inp{background:var(--field)}
+.fsheet .bage{grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font:700 .667rem var(--font-ui);color:var(--ink-2)}
 .fsheet fieldset{border:0;padding:0;margin:0;min-width:0}
 .fsheet legend{padding:0;margin-bottom:6px}
 .fsheet .chip[aria-pressed="true"]::before{content:"✓ "}
@@ -1069,6 +1064,8 @@ details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:p
 .list{display:flex;flex-direction:column;border-radius:var(--radius-card);overflow:hidden;background:var(--beige-2)}
 .list button{border:0;border-bottom:1px solid var(--line);background:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;min-height:60px;font:700 .889rem var(--font-ui);color:var(--ink);text-align:left}
 .list button:last-child{border-bottom:0}
+.mgrp{display:flex;flex-direction:column;gap:8px}
+.mgrp h2{margin:0;padding-inline:4px}
 .list button small{display:block;font:400 .778rem var(--font-ui);color:var(--ink-2)}
 .list svg{width:20px;height:20px;color:var(--green);flex:none}
 
@@ -1212,8 +1209,6 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lb-town{min-height:44px;padding:0 14px;border-radius:12px}
 .lb-big{position:relative;height:56px;padding:0 26px;gap:10px;font-size:16px}
 .lb-ic44{width:44px;height:44px;padding:0;border-radius:12px}
-.lpick{min-width:54px;height:44px;padding:0 14px;border-radius:12px;font-size:15px}
-.lpick[aria-pressed="true"]{background:var(--green);color:var(--snow)}
 .lheart[aria-pressed="true"] path{fill:currentColor}
 .llink{align-self:flex-start;min-height:44px;padding:6px 0 0;border:0;background:none;font:700 14px var(--font-ui);color:var(--green);text-align:left}
 /* type */
@@ -1307,8 +1302,6 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lunit{font:700 16px var(--font-ui);letter-spacing:0;color:var(--ink-2)}
 .lrange{width:100%;height:24px;margin:4px 0 0;accent-color:var(--green)}
 .lends{display:flex;justify-content:space-between;gap:12px;font:400 12px var(--font-ui);color:var(--ink-2)}
-.lsteprow .wheel{width:120px}
-.lpicks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .lverd{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:30px;background:var(--snow)}
 .lverd-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .lvchip{padding:6px 12px;border-radius:10px;font:700 12px var(--font-ui)}
@@ -1451,7 +1444,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   .tabs .side-prof:hover,.townrow:hover,.salerow:hover,.fcard:hover,.layer:hover,.list button:hover{background:var(--fill-press)}
   .btn:hover,.chip:hover,.speakbtn:hover,.mic:hover,.sheet .close:hover,.lb-out:hover,.lmissing button:hover{background:var(--tint-2)}
   .pchip:hover,.mapctl button:hover,.totop:hover,.noticelink:hover{background:var(--beige-2)}
-  .btn.primary:hover,.lb-g:hover,.chip[aria-pressed="true"]:hover,.lpick[aria-pressed="true"]:hover,.speakbtn[aria-pressed="true"]:hover,.mic.on:hover,.townrow[aria-pressed="true"]:hover{background:var(--green-deep)}
+  .btn.primary:hover,.lb-g:hover,.chip[aria-pressed="true"]:hover,.speakbtn[aria-pressed="true"]:hover,.mic.on:hover,.townrow[aria-pressed="true"]:hover{background:var(--green-deep)}
   .btn.ghost:hover,.lb-beige:hover{background:color-mix(in srgb,var(--beige-deep) 60%,var(--beige))}
   .lband .lb-beige:hover{background:color-mix(in srgb,var(--brand-hi) 85%,var(--brand))}
   .lmic[aria-pressed="true"]:hover{background:var(--beige)}
@@ -1596,18 +1589,17 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
                 <label for="lRange" class="llab">Remaining lease</label>
                 <div class="lsteprow">
                   <p class="lbig"><span id="lLeaseV">55</span> <span class="lunit" id="lLeaseU">years</span></p>
-                  <div id="lLeaseW"></div>
                 </div>
                 <input id="lRange" class="lrange" type="range" min="1" max="99" step="1" value="55">
                 <div class="lends"><span>1 year</span><span>99 years</span></div>
               </div>
               <div class="lgrp">
-                <span id="lAgeL" class="llab">Youngest buyer</span>
+                <label for="lAgeRange" id="lAgeL" class="llab">Youngest buyer</label>
                 <div class="lsteprow">
                   <p class="lbig" aria-labelledby="lAgeL"><span id="lAgeV">52</span> <span class="lunit">years old</span></p>
-                  <div id="lAgeW"></div>
                 </div>
-                <div class="lpicks" role="group" aria-label="Quick pick age"><button type="button" class="lb lb-out lpick sq" data-age="25" aria-pressed="false">25</button><button type="button" class="lb lb-out lpick sq" data-age="30" aria-pressed="false">30</button><button type="button" class="lb lb-out lpick sq" data-age="35" aria-pressed="false">35</button><button type="button" class="lb lb-out lpick sq" data-age="40" aria-pressed="false">40</button><button type="button" class="lb lb-out lpick sq" data-age="52" aria-pressed="true">52</button><button type="button" class="lb lb-out lpick sq" data-age="60" aria-pressed="false">60</button></div>
+                <input id="lAgeRange" class="lrange" type="range" min="21" max="85" step="1" value="52">
+                <div class="lends"><span>21</span><span>85</span></div>
               </div>
               <button type="button" class="llink" id="lReset" title="Back to a 55-year lease, age 52, no town and 4-room">Reset the calculator</button>
             </div>
@@ -1771,11 +1763,11 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
         <div class="langbar"><label for="askLang">Answer language</label><span class="lselw"><select class="lsel" id="askLang" aria-describedby="langNote"><option value="en" lang="en">English</option><option value="zh" lang="zh-Hans">中文</option><option value="ms" lang="ms">Bahasa Melayu</option><option value="ta" lang="ta">தமிழ்</option></select><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><p class="small" id="langNote">Answers in your language; official quotes and figures stay in English.</p></div>
         <div class="upcard" data-st="st.file_uploader → extract → recommend">
           <b class="ui" style="font-size:1rem;color:var(--ink)">Have a document? I can suggest towns.</b>
-          <p class="small" style="color:var(--ink)">Upload your notes, budget, or HFE letter. I read your age, budget, CPF and flat type, then rank towns using recent sales.</p>
-          <p class="small" style="color:var(--ink)" id="upRules">PDF, TXT, MD or TEXT files up to 5 MB (the first 10 pages of a PDF). Your file is read in this browser and never uploaded: nothing from it is sent to Runway's server or kept after you leave the page.</p>
+          <p class="small" style="color:var(--ink)">Upload your notes, budget, or HFE letter. I pick out your age, budget, CPF and flat type, then rank towns using recent sales.</p>
+          <p class="small" style="color:var(--ink)" id="upRules">PDF, TXT, MD or TEXT files up to 5 MB (the first 10 pages of a PDF). Your file is opened in this browser only and never uploaded: nothing from it is sent to Runway's server or kept after you leave the page.</p>
           <div class="row"><button type="button" class="btn primary" id="upBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 12.5 12.5 20a5 5 0 0 1-7-7L13 5.5a3.4 3.4 0 0 1 4.8 4.8L10.4 17.7a1.7 1.7 0 0 1-2.4-2.4l6.9-6.9"/></svg>Upload a file</button><button type="button" class="btn" id="sampleBtn">Try a sample</button></div>
           <input type="file" id="upDoc" accept=".pdf,.txt,.md,.text" hidden>
-          <span class="redact"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Names, NRIC and phone numbers are removed before anything is read.</span>
+          <span class="redact"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Names, NRIC numbers, phone numbers and emails are removed first, before I look for anything else.</span>
         </div>
         <div class="chat" id="chat" data-st="st.chat_message"></div><p id="chatLive" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)"></p>
         <div class="chips" id="sugg" data-st="st.pills"></div>
@@ -2157,33 +2149,14 @@ function uploadProblem(name, size){
   return '';
 }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-// Wheel picker for every number the user picks: a scroll-snap listbox whose centred row is the value.
-// Scrolling (settled), a click, the arrows, Page Up/Down and Home/End pick; onPick(n) runs once per change.
-const WHEEL_ROW = 44;
-function wheelHtml(id, label, lo, hi, v, unit = '', compact = false){
-  let rows = ''; for(let n = lo; n <= hi; n++) rows += `<div role="option" id="${id}-${n}" aria-selected="${n === v}">${n}${unit}</div>`;
-  return `<div class="wheel sq${compact ? ' w3' : ''}"><div class="wheel-s" id="${id}" role="listbox" tabindex="0" aria-label="${label}" aria-activedescendant="${id}-${v}" data-lo="${lo}" data-v="${v}">${rows}</div></div>`;
+// Slider for every number the user picks: the value shown large above a native range input (arrows, Page Up/Down, Home/End).
+// The large number repeats the slider's own value, so it is hidden from screen readers; onPick(n) runs on every change.
+function sliderHtml(id, label, lo, hi, v, unit = ''){
+  return `<div class="numpick"><p class="numpick-v" id="${id}-v" aria-hidden="true">${v}${unit}</p><input class="lrange" id="${id}" type="range" min="${lo}" max="${hi}" step="1" value="${v}" aria-label="${label}" data-unit="${unit}"${unit ? ` aria-valuetext="${v}${unit}"` : ''}><div class="lends" aria-hidden="true"><span>${lo}${unit}</span><span>${hi}${unit}</span></div></div>`;
 }
-function bindWheel(id, onPick){
-  const s = document.getElementById(id), lo = +s.dataset.lo, hi = lo + s.children.length - 1;
-  let v = +s.dataset.v, t;
-  const calm = () => document.documentElement.dataset.input === 'key' || matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const set = (n, scroll, smooth) => {
-    n = Math.max(lo, Math.min(hi, n)); if(n === v) return;
-    if(scroll) s.scrollTo({top: (n - lo) * WHEEL_ROW, behavior: smooth && !calm() ? 'smooth' : 'auto'});
-    s.children[v - lo].setAttribute('aria-selected', 'false'); s.children[n - lo].setAttribute('aria-selected', 'true');
-    s.setAttribute('aria-activedescendant', `${id}-${n}`); s.dataset.v = v = n; onPick(n);
-  };
-  // also when a hidden page is shown: a hidden scroller can't hold its position
-  new ResizeObserver(() => { s.scrollTop = (v - lo) * WHEEL_ROW; }).observe(s);
-  s.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => set(lo + Math.round(s.scrollTop / WHEEL_ROW)), 120); }, {passive: true});
-  s.addEventListener('click', e => { const r = e.target.closest('[role=option]'); if(r) set(lo + Array.prototype.indexOf.call(s.children, r), true, true); });
-  s.addEventListener('keydown', e => {
-    const step = {ArrowUp: -1, ArrowDown: 1, PageUp: -5, PageDown: 5}[e.key];
-    const n = e.key === 'Home' ? lo : e.key === 'End' ? hi : step ? v + step : null;
-    if(n !== null){ e.preventDefault(); set(n, true); }
-  });
-  return (n, smooth = true) => set(n, true, smooth);  // a chip, slider or reset moves the wheel (and picks)
+function bindSlider(id, onPick){
+  const s = document.getElementById(id), out = document.getElementById(id + '-v'), unit = s.dataset.unit;
+  s.addEventListener('input', () => { out.textContent = s.value + unit; if(unit) s.setAttribute('aria-valuetext', s.value + unit); onPick(+s.value); });
 }
 // Your details: "123,456.40" → 123457 whole dollars (rounded up); null unless it is a plain amount from $0 to $2,000,000.
 function oaAmount(text){
@@ -2239,8 +2212,7 @@ function faqFilter(faq, text){
   function renderRule(){
     const v = landingVerdict(L.age, L.lease), needed = 95 - L.age;
     $('#lLeaseV').textContent = L.lease; $('#lLeaseU').textContent = L.lease === 1 ? 'year' : 'years';
-    $('#lAgeV').textContent = L.age; $('#lRange').value = L.lease;
-    $$('[data-age]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.age === L.age));
+    $('#lAgeV').textContent = L.age; $('#lRange').value = L.lease; $('#lAgeRange').value = L.age;
     const chip = $('#lVChip'); chip.textContent = v.label; chip.dataset.s = v.status;
     $('#lVLine').textContent = v.line; $('#lVSent').textContent = v.sentence;
     $('#lBar').style.width = v.cover + '%';
@@ -2252,14 +2224,11 @@ function faqFilter(faq, text){
     L[k] = k === 'age' ? Math.max(21, Math.min(85, v)) : Math.max(1, Math.min(99, v));
     renderRule();
   }
-  // the wheels hold the two numbers; the slider, the age chips and Reset move them
-  $('#lLeaseW').outerHTML = wheelHtml('lLeaseWh', 'Remaining lease in years', 1, 99, L.lease, '', true);
-  $('#lAgeW').outerHTML = wheelHtml('lAgeWh', "Youngest buyer's age", 21, 85, L.age, '', true);
-  const leaseTo = bindWheel('lLeaseWh', n => setRule('lease', n)), ageTo = bindWheel('lAgeWh', n => setRule('age', n));
-  $$('[data-age]').forEach(b => b.onclick = () => ageTo(+b.dataset.age));
-  $('#lRange').oninput = e => leaseTo(+e.target.value, false);  // follows the thumb 1:1
+  // the two sliders hold the numbers; Reset moves them
+  $('#lRange').oninput = e => setRule('lease', +e.target.value);
+  $('#lAgeRange').oninput = e => setRule('age', +e.target.value);
   $('#lReset').onclick = () => {  // back to the page's starting numbers; nothing else on the page or in the app changes
-    leaseTo(55); ageTo(52); $('#lTown').value = ''; $('#lType').value = '4-room'; renderRule(); syncHeart();
+    L.lease = 55; L.age = 52; $('#lTown').value = ''; $('#lType').value = '4-room'; renderRule(); syncHeart();
   };
   $('#lSee').onclick = () => RW.enter('map', {town: $('#lTown').value || null, ft: $('#lType').value, age: L.age});
   $('#lWhy').onclick = () => prefill(`${{full: 'Why can I use CPF in full', part: 'Why is my CPF use pro-rated', none: "Why can't I use CPF"}[landingVerdict(L.age, L.lease).status]} for a flat with ${yrs(L.lease)} of lease left and a youngest buyer aged ${L.age}?`);
@@ -2498,12 +2467,10 @@ function renderOnb(){
   const b=$('#onbBody'), i=S.onb, back=`<button class="back" type="button" id="onbBack">${ICON.back}Back</button>`;
   if(i===1){
     b.innerHTML = `${crumbs('Map')}${back}${dots(1)}<h1>How old is the youngest buyer?</h1><p class="lead">This decides how much lease you need.</p>
-      ${wheelHtml('aWheel',"Youngest buyer's age",21,85,S.age)}
-      <div class="chips">${[25,30,35,40,50,60].map(a=>`<button type="button" class="chip" data-a="${a}" aria-pressed="${a===S.age}">${a}</button>`).join('')}</div>
+      ${sliderHtml('aAge',"Youngest buyer's age",21,85,S.age)}
       <p class="small" id="aNeed"></p><button class="btn primary" id="nx">Next</button>`;
-    const set=a=>{S.age=a;syncAvg();$$('[data-a]').forEach(c=>c.setAttribute('aria-pressed',+c.dataset.a===S.age));$('#aNeed').textContent=`You need ${needYrs()} of lease to use CPF fully.`;};
-    const to=bindWheel('aWheel',set);
-    $$('[data-a]').forEach(c=>c.onclick=()=>to(+c.dataset.a)); set(S.age);
+    const set=a=>{S.age=a;syncAvg();$('#aNeed').textContent=`You need ${needYrs()} of lease to use CPF fully.`;};
+    bindSlider('aAge',set); set(S.age);
   } else if(i===2){
     const opts=[50000,100000,150000,200000,300000];
     b.innerHTML = `${crumbs('Map')}${back}${dots(2)}<h1>About how much CPF do you have?</h1><p class="lead">Ordinary Account, all buyers together. A rough number is fine.</p>
@@ -2659,7 +2626,7 @@ function bindFilters(){
 function openBudget(){
   openSheet(`<div class="pad fsheet"><h2 style="font-size:1.6rem">Find flats by budget</h2><p class="small">Runway checks every flat sold in ${SPAN} with its calculator. What you type stays in this browser.</p>
     <form class="found" id="bForm" novalidate>
-      <label>Youngest buyer's age<input class="inp" type="number" inputmode="numeric" min="21" max="85" id="bAge" value="${S.age}"></label>
+      <div class="bage">Youngest buyer's age${sliderHtml('bAge',"Youngest buyer's age",21,85,S.age)}</div>
       <label>Cash you have ($)<input class="inp" type="number" inputmode="numeric" min="0" step="5000" id="bCash" value="${S.cash??''}"></label>
       <label>CPF Ordinary Account ($)<input class="inp" type="number" inputmode="numeric" min="0" step="5000" id="bOa" placeholder="Not sure" value="${S.oaSet?S.oa:''}"></label>
       <label>Flat type<span class="lselw"><select class="inp" id="bFt"><option value="">Any</option>${FTS.map(x=>`<option>${esc(x)}</option>`).join('')}</select>${SELCHEV}</span></label>
@@ -2691,8 +2658,8 @@ function openBlock(g){
 }
 $('#chgTown').onclick=()=>openSheet(`<div class="pad"><h2 style="font-size:1.6rem">Choose a town</h2><p class="small">Diamonds show how much lease length changes prices in each town.</p>${townListHtml()}</div>`,()=>bindTownList(t=>{S.town=t;needFit=true;closeSheet();drawMap();}));
 $('#ageChip').onclick=()=>openSheet(ageSheetHtml(),bindAgeSheet);
-function ageSheetHtml(){return `<div class="pad"><h2 style="font-size:1.6rem">Youngest buyer's age</h2>${wheelHtml('sWheel',"Youngest buyer's age",21,85,S.age)}<p class="small" id="sNeed"></p><button class="btn primary" data-closesheet>Done</button></div>`;}
-function bindAgeSheet(){const set=a=>{S.age=a;syncAvg();$('#sNeed').textContent=`Needs ${needYrs()} of lease for full CPF.`;S.dirty=true;};bindWheel('sWheel',set);set(S.age);}
+function ageSheetHtml(){return `<div class="pad"><h2 style="font-size:1.6rem">Youngest buyer's age</h2>${sliderHtml('sAge',"Youngest buyer's age",21,85,S.age)}<p class="small" id="sNeed"></p><button class="btn primary" data-closesheet>Done</button></div>`;}
+function bindAgeSheet(){const set=a=>{S.age=a;syncAvg();$('#sNeed').textContent=`Needs ${needYrs()} of lease for full CPF.`;S.dirty=true;};bindSlider('sAge',set);set(S.age);}
 
 /* ---------- sheets ---------- */
 function openSheet(html,after){
@@ -3112,24 +3079,14 @@ $('#askForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#askIn
 
 /* ---------- more ---------- */
 function renderMore(){
+  const row=(k,name,note)=>`<button data-sub="${k}"><span>${name}<small>${note}</small></span>${ICON.chev}</button>`;
+  const group=(id,title,rows)=>`<section class="mgrp" aria-labelledby="mg-${id}"><h2 class="label" id="mg-${id}">${title}</h2><div class="list">${rows.join('')}</div></section>`;
   $('#moreBody').innerHTML=`${crumbs('More')}
-    <div class="scr-h"><h1>More</h1><p class="ui" style="font-size:.9rem">${S.user?'Logged in as '+esc(S.user):'Browsing as a guest'}</p></div>
-    <div class="list">
-      <button data-sub="details"><span>Your details<small>Youngest ${S.age} · average ${S.avg} · CPF ${S.oaSet?exact(S.oa):'not given'}</small></span>${ICON.chev}</button>
-      <button data-sub="size"><span>Text size<small>${textPx()} px</small></span>${ICON.chev}</button>
-    </div>
-    <div class="list">
-      <button data-sub="about"><span>About Us<small>What Runway is, notice, team</small></span>${ICON.chev}</button>
-      <button data-sub="method"><span>How it works<small>Methodology and flowcharts</small></span>${ICON.chev}</button>
-      <button data-sub="sources"><span>Sources and credits<small>Data, map, documents, photos</small></span>${ICON.chev}</button>
-    </div>
-    <div class="list">
-      <button data-sub="faq"><span>FAQ<small>Common questions, each with its official source</small></span>${ICON.chev}</button>
-      <button data-sub="timeline"><span>Buying timeline<small>The steps from HFE letter to keys, each with its official source</small></span>${ICON.chev}</button>
-      <button data-sub="case"><span>Case study<small>One flat type, two towns, two leases, from real sales</small></span>${ICON.chev}</button>
-      <button data-sub="privacy"><span>Privacy Policy<small>What happens to what you type or upload</small></span>${ICON.chev}</button>
-      <button data-sub="terms"><span>Terms<small>Educational use, no advice, licences</small></span>${ICON.chev}</button>
-    </div>
+    <div class="scr-h"><h1>More</h1>${S.user?`<p class="ui" style="font-size:.9rem">Logged in as ${esc(S.user)}</p>`:''}</div>
+    ${group('you','Your settings',[row('details','Your details',`Youngest ${S.age} · average ${S.avg} · CPF ${S.oaSet?exact(S.oa):'not given'}`),row('size','Text size',`${textPx()} px`)])}
+    ${group('guides','Guides',[row('faq','FAQ','Common questions, each with its official source'),row('timeline','Buying timeline','The steps from HFE letter to keys, each with its official source'),row('case','Case study','One flat type, two towns, two leases, from real sales')])}
+    ${group('about','About Runway',[row('about','About Us','What Runway is, notice, team'),row('method','How it works','Methodology and flowcharts'),row('sources','Sources and credits','Data, map, documents, photos')])}
+    ${group('legal','Legal',[row('privacy','Privacy Policy','What happens to what you type or upload'),row('terms','Terms','Educational use, no advice, licences')])}
     ${S.user?'<button class="btn ghost" type="button" id="outBtn">Log out</button>':'<button class="btn" type="button" id="inBtn">Log in for the reviewer view</button>'}`;
   $$('[data-sub]').forEach(b=>b.onclick=()=>sub(b.dataset.sub));
   const ob=$('#outBtn'); if(ob) ob.onclick=signOut;
@@ -3141,7 +3098,7 @@ function renderSub(){
   const b=$('#subBody'), s=S.sub, top=crumbs(['more','More'],SUBNAME[s]);
   if(s==='details'){
     b.innerHTML=`${top}<h1>Your details</h1>
-      <span class="label">Youngest buyer</span>${wheelHtml('dAw',"Youngest buyer's age",21,85,S.age)}
+      <span class="label">Youngest buyer</span>${sliderHtml('dAw',"Youngest buyer's age",21,85,S.age)}
       <span class="label">Average age of all buyers</span><div id="dVw"></div>
       <p class="small">Average age decides how long your HDB loan can be.</p>
       <span class="label">CPF Ordinary Account</span>
@@ -3163,9 +3120,9 @@ function renderSub(){
     $$('#dHh,#dFirst,#dCit,#dPar').forEach(x=>x.onchange=()=>{S[x.dataset.k]=x.value;S.dirty=true;});
     $('#dReset').onclick=()=>{S.age=30;S.avgSet=0;S.ageSet=false;syncAvg();S.oa=100000;S.oaSet=false;Object.assign(S,{inc:null,hh:'',first:'',cit:'sc',par:'no'});S.dirty=true;sideProf();renderSub();$('#dReset').focus();toast('Your details are back to the defaults');};
     const upd=()=>{S.dirty=true;sideProf();};
-    // the average can't be below the youngest buyer, so its wheel starts at the youngest buyer's age
-    const avgWheel=()=>{$('#dVw').innerHTML=wheelHtml('dVwh','Average age of all buyers',S.age,85,S.avg);bindWheel('dVwh',a=>{S.avgSet=S.avg=a;upd();});};
-    bindWheel('dAw',a=>{S.age=a;syncAvg();avgWheel();upd();}); avgWheel();
+    // the average can't be below the youngest buyer, so its slider starts at the youngest buyer's age
+    const avgSlider=()=>{$('#dVw').innerHTML=sliderHtml('dVwh','Average age of all buyers',S.age,85,S.avg);bindSlider('dVwh',a=>{S.avgSet=S.avg=a;upd();});};
+    bindSlider('dAw',a=>{S.age=a;syncAvg();avgSlider();upd();}); avgSlider();
     const oaIn=$('#dOa'), oaMsg=$('#dOaMsg');
     const oaShow=()=>{oaIn.value=S.oaSet?S.oa.toLocaleString('en-SG'):'';oaMsg.textContent='';oaIn.removeAttribute('aria-invalid');$$('[data-o]').forEach(x=>x.setAttribute('aria-pressed',S.oaSet?+x.dataset.o===S.oa:x.dataset.o==='skip'));};
     $$('[data-o]').forEach(c=>c.onclick=()=>{if(c.dataset.o==='skip')S.oaSet=false;else{S.oaSet=true;S.oa=+c.dataset.o;}oaShow();upd();});
@@ -3178,9 +3135,9 @@ function renderSub(){
     oaIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();oaApply();}});
     oaIn.addEventListener('change',oaApply);  // on leaving the field, not on every key
   } else if(s==='size'){
-    b.innerHTML=`${top}<h1>Text size</h1><p>Pick the size that is easiest to read. It lasts for this visit.</p>${wheelHtml('szW','Text size',14,24,textPx(),' px')}
+    b.innerHTML=`${top}<h1>Text size</h1><p>Pick the size that is easiest to read. It lasts for this visit.</p>${sliderHtml('szW','Text size',14,24,textPx(),' px')}
       <p class="notice" style="font-size:inherit;color:var(--ink)">The flat has 55 lease years left. This is how text reads at this size.</p>`;
-    bindWheel('szW',px=>{document.documentElement.style.fontSize=px===17?'':px/.944+'px';});
+    bindSlider('szW',px=>{document.documentElement.style.fontSize=px===17?'':px/.944+'px';});
   } else if(s==='sources'){ b.innerHTML=top+sourcesHtml(); }
   else if(s==='about'){ b.innerHTML=top+aboutHtml(); }
   else if(s==='method'){ b.innerHTML=top+methodHtml(); }
@@ -3201,7 +3158,7 @@ function renderSub(){
   else if(s==='case') caseStudy(b,top);
   else if(s==='timeline'){ b.innerHTML=top+timelineHtml(); }
 }
-// normal text (.944rem) in px; 17 unless the Text size wheel changed it
+// normal text (.944rem) in px; 17 unless the Text size slider changed it
 const textPx=()=>Math.round(parseFloat(getComputedStyle(document.documentElement).fontSize)*.944);
 
 const SRCI=(t,d,u)=>`<div class="srcitem"><b>${t}</b>${d}${u?`<br><a href="${u}" target="_blank" rel="noopener">${u.replace(/^https:\/\//,'')}</a>`:''}</div>`;
@@ -3709,9 +3666,9 @@ if(RW.pendingEnter){ const p=RW.pendingEnter; RW.pendingEnter=null; RWAPP.enter(
 
   function message(text, retry, detail){
     const body = document.getElementById('trBody');
-    body.replaceChildren(crumb(), el('div', {class: 'scr-h'}, [el('h1', {text: 'Price trends'}), el('p', {class: 'ui', style: 'font-size:.9rem', text})]),
+    body.replaceChildren(...[crumb(), el('div', {class: 'scr-h'}, [el('h1', {text: 'Price trends'}), el('p', {class: 'ui', style: 'font-size:.9rem', text})]),
       detail ? el('p', {class: 'small', text: 'Technical detail: ' + detail}) : null,
-      retry ? el('button', {type: 'button', class: 'btn primary', text: 'Try again', onclick: render}) : null);
+      retry ? el('button', {type: 'button', class: 'btn primary', text: 'Try again', onclick: render}) : null].filter(Boolean));  // replaceChildren prints a null as the text "null"
   }
 
   // One request for the Trends data, shared by this page and the Case study.

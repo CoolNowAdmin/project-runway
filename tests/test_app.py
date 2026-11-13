@@ -539,3 +539,36 @@ def test_ask_never_shows_an_empty_answer():
     """A failed server reply ({"ok": False, "error": ...}) has no text: the chat says so instead of an empty bubble."""
     ask = GAME[GAME.index("async function ask("):GAME.index("const SPK=")]
     assert "typeof r.text !== 'string'" in ask and ask.index("typeof r.text") < ask.index("md(r.text)")
+
+
+def test_every_number_is_picked_with_one_slider():
+    """Ages, lease years and text size: a native range slider each, with no wheel and no suggested-age chips beside it."""
+    assert "wheelHtml" not in GAME and "bindWheel" not in GAME and 'role="listbox"' not in GAME
+    assert "data-age=" not in GAME and "[25,30,35,40,50,60]" not in GAME and "Quick pick age" not in GAME
+    for use in ("sliderHtml('aAge',", "sliderHtml('sAge',", "sliderHtml('dAw',", "sliderHtml('dVwh',", "sliderHtml('szW',", "sliderHtml('bAge',"):
+        assert GAME.count(use) == 1, use
+    assert 'id="lRange" class="lrange" type="range" min="1" max="99"' in GAME
+    assert 'id="lAgeRange" class="lrange" type="range" min="21" max="85"' in GAME and '<label for="lAgeRange"' in GAME
+
+
+def test_more_page_is_grouped_under_headings_with_no_guest_line():
+    more = GAME[GAME.index("function renderMore("):GAME.index("function signOut(")]
+    assert "guest" not in more.lower()
+    assert [h for h in ("Your settings", "Guides", "About Runway", "Legal") if f"'{h}'" in more] == ["Your settings", "Guides", "About Runway", "Legal"]
+    assert '<h2 class="label"' in more and 'aria-labelledby="mg-' in more
+    listed = set(re.findall(r"row\('(\w+)'", more))
+    names = re.search(r"const SUBNAME=\{(.*?)\};", GAME).group(1)
+    assert listed == set(re.findall(r"(\w+):'", names))  # every More sub-page is in exactly one group
+
+
+def test_trends_loading_message_prints_no_empty_slots():
+    """replaceChildren turns a null argument into the text "null": the loading message once read "nullnull"."""
+    msg = GAME[GAME.index("  function message(text, retry, detail){"):GAME.index("  // One request for the Trends data")]
+    assert ".filter(Boolean)" in msg and "replaceChildren(...[" in msg
+
+
+def test_upload_card_does_not_contradict_itself():
+    """The file is opened in the browser, personal details go first, then four facts are picked out: one verb each."""
+    card = GAME[GAME.index("Have a document? I can suggest towns."):GAME.index('id="chatLive"')]
+    assert "removed first, before I look for anything else" in card and "I pick out your age, budget, CPF and flat type" in card
+    assert "opened in this browser only and never uploaded" in card and " read" not in card

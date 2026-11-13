@@ -46,6 +46,6 @@ def test_page_is_an_ordered_list_with_headings_under_more():
     html = GAME[GAME.index("function timelineHtml"):GAME.index("const LEGAL_DATE")]
     assert '<ol class="tl">' in html and "<h1>Buying timeline</h1>" in html and '<h2 id="tl${i}">' in html
     assert "crumbs(['more','More'],SUBNAME[s])" in GAME and "timeline:'Buying timeline'" in GAME
-    assert '<button data-sub="timeline">' in GAME and "'timeline': 'more timeline'" in GAME
+    assert "row('timeline','Buying timeline'," in GAME and "'timeline': 'more timeline'" in GAME
     css = GAME[GAME.index("/* ---- buying timeline ---- */"):GAME.index("/* ---- Trends")]
     assert not re.search(r"#[0-9a-fA-F]{3,6}\b", css)  # colours come from the theme tokens, so dark mode follows
