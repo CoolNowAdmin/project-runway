@@ -46,7 +46,7 @@ Rules: no second accent, no purple, no glowing buttons. Gradients appear in two 
 
 ## Type (one pair)
 - **Display:** Source Serif 4, 700 (600 for italics). Headline scale: h1 72/1.02, h2 48/1.08, h3 24/1.25, tracking −0.02em on h1/h2. Inner pages: h1 34/1.1, h2 24/1.25, h3 20/1.3. Display is for headings, big numbers and the answer and verdict sentences only; headings are green.
-- **Body:** Plus Jakarta Sans for all body and UI text. Body 17/1.6, small 14–15/1.5, labels 12/700 in sentence case with no tracking.
+- **Body:** Plus Jakarta Sans for all body and UI text. Two sizes only, in rem so Text size scales them: normal text 17px (`.944rem`, 400) for paragraphs, nav items, inputs, breadcrumbs and messages on every page; small 14px (`.778rem`) for notes, captions and credits. Labels 12/700 in sentence case with no tracking. Buttons and big numbers keep their own sizes.
 - **Wordmark only:** Anton (RUNWAY).
 - Numbers: `font-variant-numeric: tabular-nums` everywhere a number can change.
 - Sentence case for labels and buttons. Caps only for the wordmark. Inner pages size type in rem so Text size "Large" scales them.
@@ -65,7 +65,9 @@ Rules: no second accent, no purple, no glowing buttons. Gradients appear in two 
 
 ## Navigation
 - One left nav on every page, Home included: Home, Map, Shortlist, Trends, Ask, More, then Dark mode and Log in at the foot, with the logo and wordmark on top.
-- ≥1024px: a fixed left sidebar, content to its right. Below 1024px: a slim top bar with a menu button (top left) that opens the same nav as a drawer from the left over a dimmed scrim. No bottom tab bar.
+- ≥1024px: a fixed left sidebar, content to its right. "Collapse menu" at its foot folds it to a 76px icon rail (labels become tooltips; a search icon reopens it with the search box focused). The fold is instant and lasts for the visit only: nothing is stored. Below 1024px: a slim top bar with a menu button (top left) that opens the same nav as a drawer from the left over a dimmed scrim. No bottom tab bar.
+- The Runway logo (sidebar, rail, top bar) always opens the top of Home.
+- The search box carries a magnifier icon.
 - Current page: green text on a beige-2 fill with a 2px green edge. More's own pages keep More marked.
 - One URL per page (page names only, never user input); Back and Forward follow it.
 - Every inner page starts with a breadcrumb (`crumbs()`: Home › … › page, the last crumb plain text). On the map it sits in the town card.

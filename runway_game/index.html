@@ -734,7 +734,7 @@ input{caret-color:var(--green)}
 .appbar{flex:none;display:flex;align-items:center;gap:6px;min-height:56px;padding:0 12px 0 6px;background:var(--page);border-bottom:1px solid var(--line)}
 .menubtn{width:44px;height:44px;flex:none;border:0;border-radius:12px;background:none;color:var(--green);display:grid;place-items:center}
 .menubtn:hover,.menubtn:active{background:var(--beige-2)}
-.brand{display:flex;align-items:center;gap:10px;color:var(--green);--mk-bg:var(--page)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--green);text-decoration:none;--mk-bg:var(--page)}
 .brand svg{width:34px;height:34px;flex:none}
 .brand .wm{display:block;font:400 1.3rem/1 var(--font-wordmark);letter-spacing:.04em}
 .brand .tg{display:block;font:400 .52rem var(--font-wordmark);letter-spacing:.16em;margin-top:4px;color:var(--ink)}
@@ -744,19 +744,23 @@ input{caret-color:var(--green)}
 .tabs .brand{padding:0 8px 18px}
 .tabs .brand svg{width:44px;height:44px}
 .tabs .brand .wm{font-size:1.6rem}
-.tabs button{position:relative;border:0;background:none;display:flex;align-items:center;gap:14px;min-height:52px;padding:0 16px;border-radius:12px;font:600 1rem var(--font-ui);color:var(--ink-2);text-align:left}
+.tabs button{position:relative;border:0;background:none;display:flex;align-items:center;gap:14px;min-height:52px;padding:0 16px;border-radius:12px;font:400 .944rem var(--font-ui);color:var(--ink-2);text-align:left}
 .tabs button svg{width:24px;height:24px;flex:none}
 .tabs button:hover{background:var(--beige-2);color:var(--ink)}
 .tabs button[aria-current="page"]{background:var(--beige-2);color:var(--green);box-shadow:inset 2px 0 0 var(--green)}
-.tabs .navlogin,.tabs .navtheme{padding-left:54px;color:var(--green)}
-.tabs .navtheme{justify-content:space-between;gap:8px;padding-right:12px;white-space:nowrap}
+.tabs .navlogin,.tabs .navtheme{color:var(--green)}
+.tabs .navtheme{padding-right:12px;white-space:nowrap}
+.tabs .navtheme .tg{margin-left:auto}
+/* the folded icon rail is a desktop control; its search button only shows while folded */
+.tabs .navcollapse,.tabs .navsearchbtn{display:none}
+.tabs .navcollapse svg{transition:transform .2s ease-out}
 .navfoot{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:6px}
 .tabs .count{margin-left:auto;background:var(--green);color:var(--snow);font:700 .66rem var(--font-ui);border-radius:999px;min-width:20px;height:20px;padding:0 5px;display:grid;place-items:center}
 .tabs .count.bump{animation:bump .24s cubic-bezier(.3,1.5,.6,1)}
 @keyframes bump{40%{transform:scale(1.4)}}
-.tabs .side-prof{flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:var(--snow);padding:12px 14px;border-radius:var(--radius-btn);font:500 .8rem var(--font-ui);color:var(--ink-2)}
+.tabs .side-prof{flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:var(--snow);padding:12px 14px;border-radius:var(--radius-btn);font:400 .778rem var(--font-ui);color:var(--ink-2)}
 .tabs .side-prof:hover{border-color:var(--beige-deep);background:var(--snow)}
-.tabs .side-prof b{font:700 .9rem var(--font-ui);color:var(--ink)}
+.tabs .side-prof b{font:600 .944rem var(--font-ui);color:var(--ink)}
 
 /* buttons: Home's .lb look (green primary, 1px outline secondary, beige secondary) in rem so Text size scales them */
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:var(--radius-btn);border:1px solid var(--line);background:var(--snow);color:var(--green);font:700 .833rem/1.3 var(--font-ui);padding:8px 18px;text-align:center;transition:background-color .15s ease-out,border-color .15s ease-out,color .15s ease-out}
@@ -780,11 +784,11 @@ input{caret-color:var(--green)}
 /* fields */
 .field{display:flex;flex-direction:column;gap:6px}
 .field>span{font:700 .667rem var(--font-ui);color:var(--ink-2)}
-.inp{border:1px solid var(--line);border-radius:var(--radius-btn);padding:0 16px;min-height:50px;background:var(--beige-2);width:100%;font:500 .889rem var(--font-ui);color:var(--ink)}
+.inp{border:1px solid var(--line);border-radius:var(--radius-btn);padding:0 16px;min-height:50px;background:var(--beige-2);width:100%;font:400 .944rem var(--font-ui);color:var(--ink)}
 .inp:focus{border-color:var(--green)}
 .inp::placeholder{color:var(--ink-2);opacity:1}
 select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weight:700;color:var(--green)}
-.err{font:600 .833rem var(--font-ui);color:var(--ink)}
+.err{font:600 .944rem var(--font-ui);color:var(--ink)}
 
 /* onboarding */
 .dots{display:flex;gap:6px;justify-content:center}
@@ -887,7 +891,7 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .rec .rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rec .rh b{font:700 1.15rem var(--font-display);color:var(--green)}
 .rec .rk{font:700 .667rem var(--font-ui);color:var(--green)}
-.rec p{font:400 .833rem/1.5 var(--font-ui);color:var(--ink-2)}
+.rec p{font:400 .944rem/1.5 var(--font-ui);color:var(--ink-2)}
 .redact{font:600 .722rem var(--font-ui);color:var(--ok);display:flex;gap:6px;align-items:center}
 .srclist{display:flex;flex-direction:column;gap:10px}
 /* a source: Home's dashed rule box */
@@ -913,7 +917,7 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .legend{align-self:flex-start;background:var(--snow);border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;gap:12px;font:700 .667rem var(--font-ui);color:var(--ink-2);flex-wrap:wrap}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .legend svg{width:16px;height:16px}
-.hint{background:var(--brand-deep);color:var(--on-brand);font:600 .833rem/1.45 var(--font-ui);border-radius:16px;padding:12px 14px;text-align:center}
+.hint{background:var(--brand-deep);color:var(--on-brand);font:600 .944rem/1.45 var(--font-ui);border-radius:16px;padding:12px 14px;text-align:center}
 
 /* sheets */
 .sheet{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end}
@@ -964,12 +968,12 @@ select.inp{appearance:none;-webkit-appearance:none;padding-right:44px;font-weigh
 .tile .s{font:400 .667rem/1.3 var(--font-ui);color:var(--ink-2)}
 details.more{border-top:1px solid var(--line);padding-top:6px}
 details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:pointer;min-height:44px;display:flex;align-items:center}
-.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font:500 .833rem var(--font-ui)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font:400 .944rem var(--font-ui)}
 .kv dt{color:var(--ink-2)} .kv dd{margin:0;font-weight:700;color:var(--ink);text-align:right}
 .small{font:400 .778rem/1.5 var(--font-ui);color:var(--ink-2)}
 
 /* toast */
-.toast{position:absolute;left:16px;right:16px;bottom:16px;z-index:40;background:var(--brand-deep);color:var(--on-brand);border-radius:16px;padding:12px 16px;font:600 .889rem var(--font-ui);display:flex;gap:12px;align-items:center;box-shadow:var(--shadow-card);animation:up .24s ease-out both}
+.toast{position:absolute;left:16px;right:16px;bottom:16px;z-index:40;background:var(--brand-deep);color:var(--on-brand);border-radius:16px;padding:12px 16px;font:600 .944rem var(--font-ui);display:flex;gap:12px;align-items:center;box-shadow:var(--shadow-card);animation:up .24s ease-out both}
 .toast .st{width:42px;height:42px;flex:none}
 
 /* shortlist */
@@ -995,7 +999,7 @@ details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:p
 /* ask: bubbles as on Home's example card */
 .chat{display:flex;flex-direction:column;gap:14px}
 .msg{display:flex;flex-direction:column;gap:8px;max-width:92%;overflow-wrap:anywhere}
-.msg.me{align-self:flex-end;max-width:85%;background:var(--green);color:var(--snow);border-radius:16px 16px 4px 16px;padding:12px 16px;font:500 .833rem/1.5 var(--font-ui)}
+.msg.me{align-self:flex-end;max-width:85%;background:var(--green);color:var(--snow);border-radius:16px 16px 4px 16px;padding:12px 16px;font:400 .944rem/1.5 var(--font-ui)}
 .msg.bot{align-self:flex-start;background:var(--beige-2);border-radius:16px 16px 16px 4px;padding:16px;font:400 .944rem/1.55 var(--font-display);color:var(--ink)}
 .msg.bot .who{font:700 .667rem var(--font-ui);color:var(--green)}
 .msg.bot ul{margin:0;padding-left:1.2em}
@@ -1099,6 +1103,15 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   #sheetHost .sheet,#toastHost .toast{pointer-events:auto}
   .appbar,.navscrim{display:none}
   .tabs{position:static;grid-column:1;grid-row:1;width:auto;padding:22px 14px;box-shadow:none;transform:none;visibility:visible;transition:none}
+  .tabs .navcollapse{display:flex;color:var(--ink-2)}
+  .phone.navmini{grid-template-columns:76px minmax(0,1fr)}
+  .navmini .tabs{padding:22px 10px;overflow-x:hidden}
+  .navmini .tabs .brand{padding:0 0 18px;justify-content:center}
+  .navmini .tabs .brand>span,.navmini .navsearch,.navmini .tabs .side-prof,.navmini .tabs .tg{display:none}
+  .navmini .tabs .navsearchbtn{display:flex}
+  .navmini .tabs button{justify-content:center;gap:0;padding:0;font-size:0}  /* labels stay in the accessibility tree */
+  .navmini .tabs .count{position:absolute;top:4px;right:4px;margin:0}
+  .navmini .tabs .navcollapse svg{transform:rotate(180deg)}
   .sheet{position:absolute;inset:0;flex-direction:row;justify-content:flex-end}
   .sheet .scrim{background:rgba(17,17,17,.16)}
   .sheet .panel{width:min(480px,100%);height:100%;max-height:100%;border-radius:0;animation:side .28s cubic-bezier(.2,.9,.3,1) both;box-shadow:-16px 0 40px rgba(17,17,17,.14)}
@@ -1146,11 +1159,11 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lh3{margin:0;font:700 24px/1.25 var(--font-display);color:var(--green)}
 .lh3.big{font-size:30px;line-height:1.2}
 .lkick{font:800 12px/1.4 var(--font-ui);letter-spacing:.04em;color:var(--ink-2)}
-.lsub{max-width:40em;font:400 17px/1.6 var(--font-ui);color:var(--ink-2)}
+.lsub{max-width:40em;font:400 .944rem/1.6 var(--font-ui);color:var(--ink-2)}
 .llab{font:700 12px/1.4 var(--font-ui);color:var(--ink-2)}
 .lmeta{font:700 13px var(--font-ui);color:var(--ink-2)}
-.lbody{font:400 15px/1.6 var(--font-ui);color:var(--ink-2)}
-.lnote{font:400 13px/1.5 var(--font-ui);color:var(--ink-2)}
+.lbody{font:400 .944rem/1.6 var(--font-ui);color:var(--ink-2)}
+.lnote{font:400 .778rem/1.5 var(--font-ui);color:var(--ink-2)}
 .lstack{display:flex;flex-direction:column;gap:2px}
 .lsec{padding-block:72px 80px}
 .lhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
@@ -1172,10 +1185,10 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lh1{max-width:14em;margin:0;font:700 clamp(42px,5.4vw,78px)/1.02 var(--font-display);letter-spacing:-.02em;color:var(--on-brand)}
 .lh1 em{font-weight:600;color:var(--brand-hi)}
 .lscrib{display:block;margin-top:12px}
-.llead{max-width:34em;font:400 18px/1.6 var(--font-ui);color:var(--on-brand)}
+.llead{max-width:34em;font:400 .944rem/1.6 var(--font-ui);color:var(--on-brand)}
 .lcomp{display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:720px;padding:10px;border-radius:22px;background:var(--snow);box-shadow:var(--shadow-composer);color:var(--ink)}
 .lcomp-ic{flex:0 0 48px;height:48px;border-radius:var(--radius-btn);background:var(--beige);color:var(--green);display:grid;place-items:center}
-.lcomp input{flex:1 1 240px;min-width:0;height:56px;border:0;background:transparent;font:500 17px var(--font-ui);color:var(--ink);outline-offset:4px}
+.lcomp input{flex:1 1 240px;min-width:0;height:56px;border:0;background:transparent;font:400 .944rem var(--font-ui);color:var(--ink);outline-offset:4px}
 .lcomp input::placeholder{color:var(--ink-2);opacity:1}
 .lmic{flex:0 0 48px;height:48px;border-radius:var(--radius-btn);display:grid;place-items:center}
 .lmic[aria-pressed="true"]{background:var(--beige)}
@@ -1194,13 +1207,13 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lchat-s{font:400 12px var(--font-ui);color:var(--ink-2)}
 .lonline{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--beige);font:700 11px var(--font-ui);color:var(--green);white-space:nowrap}
 .lconvo{display:flex;flex-direction:column;gap:14px}
-.lme{align-self:flex-end;max-width:85%;padding:12px 16px;border-radius:16px 16px 4px 16px;background:var(--green);color:var(--snow);font:500 15px/1.5 var(--font-ui);overflow-wrap:anywhere}
+.lme{align-self:flex-end;max-width:85%;padding:12px 16px;border-radius:16px 16px 4px 16px;background:var(--green);color:var(--snow);font:400 .944rem/1.5 var(--font-ui);overflow-wrap:anywhere}
 .lbot{align-self:flex-start;max-width:94%;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px 16px 16px 4px;background:var(--beige-2);overflow-wrap:anywhere}
 .lanst{display:flex;flex-direction:column;gap:8px;font:400 17px/1.55 var(--font-display);color:var(--ink)}
 .lanst ul{margin:0;padding-left:1.2em}
 .lrbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;background:var(--snow);border:1px dashed var(--beige-deep)}
 .lrbox-h{display:inline-flex;align-items:center;gap:6px;font:800 11px var(--font-ui);letter-spacing:.04em;color:var(--green)}
-.lrbox-q{font:400 13px/1.5 var(--font-ui);color:var(--ink-2)}
+.lrbox-q{font:400 .778rem/1.5 var(--font-ui);color:var(--ink-2)}
 .lrbox-s,.lrbox a{font:700 12px/1.4 var(--font-ui);color:var(--ink-2)}
 .lrbox a{color:var(--green)}
 .lacts{display:flex;flex-wrap:wrap;gap:8px}
@@ -1211,7 +1224,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lhow li .lstack{gap:3px}
 .lic40{flex:0 0 40px;height:40px;border-radius:12px;background:var(--green);color:var(--snow);display:grid;place-items:center}
 .lst-t{font:800 15px var(--font-ui);color:var(--green)}
-.lst-b{font:400 14px/1.5 var(--font-ui);color:var(--ink-2)}
+.lst-b{font:400 .944rem/1.5 var(--font-ui);color:var(--ink-2)}
 .lstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .lstat{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border-radius:16px;color:var(--on-brand)}
 .lstat.alt{background:var(--beige);color:var(--green)}
@@ -1256,7 +1269,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 /* your town */
 .lpager{display:flex;align-items:center;gap:10px}
 .lpager b{font:700 28px/1 var(--font-display);color:var(--green)}
-.lpager span{font:400 13px var(--font-ui);color:var(--ink-2)}
+.lpager span{font:400 .778rem var(--font-ui);color:var(--ink-2)}
 .lpager .lb[aria-busy="true"]{opacity:.5;cursor:progress}
 .ltgrid{display:flex;flex-wrap:wrap;gap:16px;margin-top:36px}
 .lfeat{flex:1 1 100%;display:flex;flex-wrap:wrap;border-radius:var(--radius-card);overflow:hidden;background:var(--snow);border:1px solid var(--line)}
@@ -1289,7 +1302,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 /* on the brand surface the beige button keeps its light beige in both themes */
 .lband .lb-beige{background:var(--brand-hi);color:var(--brand)}
 .lband .lb-beige:hover,.lband .lb-beige:active{background:color-mix(in srgb,var(--brand-hi) 85%,var(--brand))}
-.lband p{max-width:36em;font:400 16px/1.6 var(--font-ui);color:color-mix(in srgb,var(--on-brand) 88%,var(--brand))}
+.lband p{max-width:36em;font:400 .944rem/1.6 var(--font-ui);color:color-mix(in srgb,var(--on-brand) 88%,var(--brand))}
 .lnotice-s{padding-bottom:56px}
 .lnotice{padding:10px 22px;border-radius:16px;background:var(--beige-2);border:1px solid var(--line)}
 .lbang{flex:0 0 28px;height:28px;border-radius:50%;background:var(--green);color:var(--snow);display:grid;place-items:center;font:800 14px var(--font-ui)}
@@ -1297,7 +1310,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lnotice summary::-webkit-details-marker{display:none}
 .lnotice summary svg{flex:none;margin-left:auto;color:var(--green);transition:transform .15s ease-out}
 .lnotice[open] summary svg{transform:rotate(180deg)}
-.lnotice-t{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px 42px;font:400 13px/1.6 var(--font-ui);color:var(--ink-2)}
+.lnotice-t{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px 42px;font:400 .778rem/1.6 var(--font-ui);color:var(--ink-2)}
 .lnotice-h{font:800 14px var(--font-ui);color:var(--ink)}
 .lfoot{color:var(--on-brand)}
 /* green surfaces: a soft sage glow around a dark disc, with still film grain. At 25% the glow's brightest point keeps snow and beige text at 4.5:1. */
@@ -1307,7 +1320,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lfoot .lmark{width:36px;height:36px}
 .lfoot-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:40px;row-gap:8px;min-height:112px;border-bottom:1px solid color-mix(in srgb,var(--on-brand) 12%,var(--brand))}
 .lflinks{display:flex;flex-wrap:wrap;align-items:stretch;column-gap:28px}
-.lfl{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:110px;padding:0;border:0;border-bottom:2px solid transparent;background:none;font:500 14px var(--font-ui);color:color-mix(in srgb,var(--on-brand) 88%,var(--brand));text-decoration:none}
+.lfl{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:110px;padding:0;border:0;border-bottom:2px solid transparent;background:none;font:400 .944rem var(--font-ui);color:color-mix(in srgb,var(--on-brand) 88%,var(--brand));text-decoration:none}
 .lfl:hover{color:var(--brand-hi)}
 .lfl.on{border-bottom-color:var(--brand-hi);font-weight:700;color:var(--on-brand)}
 .lfoot-base{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;padding-block:22px 30px;font:400 12px var(--font-ui);color:color-mix(in srgb,var(--on-brand) 75%,var(--brand))}
@@ -1320,9 +1333,11 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   .lscrim{background:linear-gradient(180deg,rgba(1,42,38,0) calc(100% - 140px),rgba(1,42,38,.55) 100%),linear-gradient(90deg,rgba(1,42,38,.72) 0%,rgba(1,42,38,.55) 100%)}
 }
 @media (max-width:1019px){.lhow{padding-top:16px}.lcredit{top:14px;bottom:auto} /* the full-width chat card covers the bottom corner */}
-/* the same content width beside the 260px sidebar (and its scrollbar) */
-@media (min-width:1024px) and (max-width:1299px){.lhow{padding-top:16px}.lcredit{top:14px;bottom:auto}}
-@media (min-width:1024px) and (max-width:1359px){.lscrim{background:linear-gradient(180deg,rgba(1,42,38,0) calc(100% - 140px),rgba(1,42,38,.55) 100%),linear-gradient(90deg,rgba(1,42,38,.72) 0%,rgba(1,42,38,.55) 100%)}}
+/* the same content widths beside the 260px sidebar, or the 76px folded rail (and the scrollbar) */
+@media (min-width:1024px) and (max-width:1299px){.phone:not(.navmini) .lhow{padding-top:16px}.phone:not(.navmini) .lcredit{top:14px;bottom:auto}}
+@media (min-width:1024px) and (max-width:1359px){.phone:not(.navmini) .lscrim{background:linear-gradient(180deg,rgba(1,42,38,0) calc(100% - 140px),rgba(1,42,38,.55) 100%),linear-gradient(90deg,rgba(1,42,38,.72) 0%,rgba(1,42,38,.55) 100%)}}
+@media (min-width:1024px) and (max-width:1115px){.navmini .lhow{padding-top:16px}.navmini .lcredit{top:14px;bottom:auto}}
+@media (min-width:1024px) and (max-width:1175px){.navmini .lscrim{background:linear-gradient(180deg,rgba(1,42,38,0) calc(100% - 140px),rgba(1,42,38,.55) 100%),linear-gradient(90deg,rgba(1,42,38,.72) 0%,rgba(1,42,38,.55) 100%)}}
 @media (max-width:767px){
   .lw{padding-inline:16px}
   .lsec{padding-block:48px}
@@ -1342,7 +1357,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .lover .x:hover,.lover .x:active{background:var(--beige-2);color:var(--ink)}
 @keyframes fadeIn{from{opacity:0}}
 /* breadcrumbs (crumbs()), back to top, site search, not-found notice */
-.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px;font:500 .85rem/1.4 var(--font-ui);color:var(--ink-2)}
+.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px;font:400 .944rem/1.4 var(--font-ui);color:var(--ink-2)}
 .crumbs li+li::before{content:"›";margin-right:4px}
 .crumbs{margin-block:-6px}
 .crumbs button{border:0;background:none;padding:0;min-height:44px;min-width:44px;font:inherit;font-weight:700;color:var(--green);text-decoration:underline;text-underline-offset:3px}
@@ -1352,13 +1367,15 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .totop:hover{border-color:var(--beige-deep)}
 .totop:active{background:var(--beige-2)}
 .navsearch{display:flex;flex-direction:column;gap:6px;padding:0 4px 12px}
-.navsearch .inp{min-height:44px;padding:8px 12px}
+.navq-box{position:relative}
+.navq-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink-2);pointer-events:none}
+.navsearch .inp{min-height:44px;padding:8px 12px 8px 42px}
 .navq-r{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .navq-r:not(:empty){padding:4px;border:1px solid var(--line);border-radius:var(--radius-btn);background:var(--snow)}
-.tabs .navq-r button{min-height:44px;padding:6px 12px;gap:2px;flex-direction:column;align-items:flex-start;font-size:.9rem;color:var(--ink)}
-.tabs .navq-r small{font:500 .72rem var(--font-ui);color:var(--ink-2)}
+.tabs .navq-r button{min-height:44px;padding:6px 12px;gap:2px;flex-direction:column;align-items:flex-start;font-size:.944rem;color:var(--ink)}
+.tabs .navq-r small{font:400 .778rem var(--font-ui);color:var(--ink-2)}
 .lmissing{background:var(--beige-2);border-bottom:1px solid var(--line)}
-.lmissing .lw{padding-block:24px;display:flex;flex-direction:column;gap:8px;font:400 15px/1.5 var(--font-ui);color:var(--ink-2)}
+.lmissing .lw{padding-block:24px;display:flex;flex-direction:column;gap:8px;font:400 .944rem/1.5 var(--font-ui);color:var(--ink-2)}
 .lmissing h2{font:700 24px/1.25 var(--font-display);letter-spacing:-.02em;color:var(--green)}
 .lmissing .lmiss-links{display:flex;flex-wrap:wrap;gap:8px}
 /* the not-found links: Home's outline buttons */
@@ -1370,7 +1387,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .rwload-card{width:100%;max-width:420px;background:var(--snow);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--green);text-align:center}
 .rwload-card .lmark{width:56px;height:56px}
 .rwload-t{font:700 1.2rem/1.3 var(--font-display);letter-spacing:-.02em;color:var(--green)}
-.rwload-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font:500 .833rem var(--font-ui);color:var(--ink-2)}
+.rwload-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font:400 .944rem var(--font-ui);color:var(--ink-2)}
 .rwload-steps li[data-s="done"]{color:var(--green)}
 .rwload-steps li[data-s="done"]::before{content:"✓ "}
 .rwload-steps li[aria-current="step"]{color:var(--ink);font-weight:700}
@@ -1383,17 +1400,18 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     <!-- MAIN NAV: the menu button opens it as a drawer below 1024px; a fixed sidebar from 1024px -->
     <header class="appbar">
       <button type="button" class="menubtn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="tabs"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 3 97 50 50 97 3 50Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M50 15 85 50 50 85 15 50Z"/><path class="lmk-bg" d="M50 25 73 48 73 62 50 85 27 62 27 48Z"/><path d="M31 52 38 48 38 73 31 66Z"/><path d="M41 46 48.5 42 48.5 83.5 41 76Z"/><path d="M51.5 40 59 44 59 76 51.5 83.5Z"/><path d="M62 50 69 54 69 66 62 73Z"/></g></svg><span class="wm">RUNWAY</span></div>
+      <a class="brand" href="#" data-home aria-label="Runway home"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 3 97 50 50 97 3 50Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M50 15 85 50 50 85 15 50Z"/><path class="lmk-bg" d="M50 25 73 48 73 62 50 85 27 62 27 48Z"/><path d="M31 52 38 48 38 73 31 66Z"/><path d="M41 46 48.5 42 48.5 83.5 41 76Z"/><path d="M51.5 40 59 44 59 76 51.5 83.5Z"/><path d="M62 50 69 54 69 66 62 73Z"/></g></svg><span class="wm">RUNWAY</span></a>
     </header>
     <div class="navscrim" id="navScrim" hidden></div>
     <nav class="tabs" id="tabs" aria-label="Main">
-      <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 3 97 50 50 97 3 50Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M50 15 85 50 50 85 15 50Z"/><path class="lmk-bg" d="M50 25 73 48 73 62 50 85 27 62 27 48Z"/><path d="M31 52 38 48 38 73 31 66Z"/><path d="M41 46 48.5 42 48.5 83.5 41 76Z"/><path d="M51.5 40 59 44 59 76 51.5 83.5Z"/><path d="M62 50 69 54 69 66 62 73Z"/></g></svg><span><span class="wm">RUNWAY</span><span class="tg">HOW MUCH LEASE YOU HAVE LEFT</span></span></div>
+      <a class="brand" href="#" data-home aria-label="Runway home"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 3 97 50 50 97 3 50Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M50 15 85 50 50 85 15 50Z"/><path class="lmk-bg" d="M50 25 73 48 73 62 50 85 27 62 27 48Z"/><path d="M31 52 38 48 38 73 31 66Z"/><path d="M41 46 48.5 42 48.5 83.5 41 76Z"/><path d="M51.5 40 59 44 59 76 51.5 83.5Z"/><path d="M62 50 69 54 69 66 62 73Z"/></g></svg><span><span class="wm">RUNWAY</span><span class="tg">HOW MUCH LEASE YOU HAVE LEFT</span></span></a>
       <div class="navsearch" role="search">
         <label for="navQ" class="label">Search Runway</label>
-        <input id="navQ" class="inp" type="search" autocomplete="off" spellcheck="false" aria-controls="navQr" aria-describedby="navQn">
+        <div class="navq-box"><svg class="navq-ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="navQ" class="inp" type="search" autocomplete="off" spellcheck="false" aria-controls="navQr" aria-describedby="navQn"></div>
         <p id="navQn" class="small" role="status"></p>
         <ul id="navQr" class="navq-r"></ul>
       </div>
+      <button type="button" class="navsearchbtn" id="navSearchBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="nl">Search Runway</span></button>
       <button type="button" data-go="" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
       <button type="button" data-go="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>Map</button>
       <button type="button" data-go="shortlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 22 12 12 22 2 12Z"/><path d="M8 12l3 3 5-6"/></svg>Shortlist<span class="count" id="listCount" hidden>0</span></button>
@@ -1402,8 +1420,9 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
       <button type="button" data-go="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>More</button>
       <div class="navfoot">
         <button type="button" class="side-prof" id="sideProf" hidden></button>
-        <button type="button" class="navtheme" id="themeBtn" aria-pressed="false">Dark mode<span class="tg" aria-hidden="true"></span></button>
-        <button type="button" class="navlogin" data-login id="lLoginBtn">Log in</button>
+        <button type="button" class="navtheme" id="themeBtn" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span class="nl">Dark mode</span><span class="tg" aria-hidden="true"></span></button>
+        <button type="button" class="navlogin" data-login id="lLoginBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5"/><path d="M4 12h11M11 8l4 4-4 4"/></svg><span class="nl">Log in</span></button>
+        <button type="button" class="navcollapse" id="navCollapse" aria-expanded="true" aria-controls="tabs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg><span class="nl">Collapse menu</span></button>
       </div>
     </nav>
 
@@ -1686,7 +1705,6 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
         </div>
         <div class="chat" id="chat" data-st="st.chat_message"></div><p id="chatLive" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)"></p>
         <div class="chips" id="sugg" data-st="st.pills"></div>
-        <p class="small" id="askWait">Runway waits up to 90 seconds for a reply. If the AI service fails or is busy, you get the official pages to read instead of an AI answer.</p>
       </div>
       <form class="composer" id="askForm" data-st="st.audio_input + st.chat_input">
         <button type="button" class="mic" id="micBtn" aria-label="Speak your question" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
@@ -1889,7 +1907,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     if(open === nav.classList.contains('open')) return;
     nav.classList.toggle('open', open); scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
     Array.from(document.getElementById('phone').children).forEach(x => { if(x !== nav && x !== scrim) x.inert = open; });
-    (open ? nav.querySelector(':scope > button') : menuBtn).focus();
+    (open ? nav.querySelector(':scope > [data-go]') : menuBtn).focus();
   }
   menuBtn.onclick = () => menu(true);
   scrim.onclick = () => menu(false);
@@ -1904,11 +1922,28 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   };
   syncTheme();
   matchMedia('(min-width:1024px)').addEventListener('change', e => { if(e.matches) menu(false); });
+  /* Desktop: the sidebar folds to an icon rail. Kept for this visit only (nothing is stored). */
+  const phone = document.getElementById('phone'), fold = document.getElementById('navCollapse');
+  RW.navTitles = () => nav.querySelectorAll(':scope > button, .navfoot > button').forEach(b => {
+    const t = b.querySelector('.nl') ? b.querySelector('.nl').textContent : Array.from(b.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent).join('');  // not the shortlist count
+    if(phone.classList.contains('navmini') && b.id !== 'sideProf') b.title = t.trim(); else b.removeAttribute('title'); });
+  function fold_(mini){
+    phone.classList.toggle('navmini', mini); fold.setAttribute('aria-expanded', !mini);
+    fold.querySelector('.nl').textContent = mini ? 'Expand menu' : 'Collapse menu'; RW.navTitles();
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));  // the map and charts measure their new width
+  }
+  fold.onclick = () => fold_(!phone.classList.contains('navmini'));
+  /* The Runway logo always goes to the top of the home page */
+  document.querySelectorAll('[data-home]').forEach(a => a.onclick = e => {
+    e.preventDefault(); menu(false); RW.go('');
+    const home = document.getElementById('scrLanding'); if(home) home.scrollTo({top: 0});
+  });
+  document.getElementById('navSearchBtn').onclick = () => { fold_(false); document.getElementById('navQ').focus(); };
   document.addEventListener('keydown', e => {
     if(!nav.classList.contains('open')) return;
     if(e.key === 'Escape') return menu(false);
     if(e.key !== 'Tab') return;
-    const f = Array.from(nav.querySelectorAll('button, input')).filter(x => !x.hidden), a = f[0], z = f[f.length - 1];
+    const f = Array.from(nav.querySelectorAll('button, input')).filter(x => x.getClientRects().length), a = f[0], z = f[f.length - 1];
     if(e.shiftKey && document.activeElement === a){ e.preventDefault(); z.focus(); }
     else if(!e.shiftKey && document.activeElement === z){ e.preventDefault(); a.focus(); }
   });
@@ -1936,7 +1971,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     setHeight();
   });
   const overlay = document.getElementById('loginOverlay');
-  function loginButtons(){ const b = document.getElementById('lLoginBtn'); if(b) b.textContent = RW.me.user ? 'Log out' : 'Log in'; }
+  function loginButtons(){ const b = document.querySelector('#lLoginBtn .nl'); if(b) b.textContent = RW.me.user ? 'Log out' : 'Log in'; if(RW.navTitles) RW.navTitles(); }
   RW.openLogin = () => { overlay.hidden = false; document.getElementById('loginErr').hidden = true; setTimeout(() => document.getElementById('u').focus(), 30); };
   const closeLogin = () => { overlay.hidden = true; };
   document.querySelectorAll('[data-login]').forEach(b => b.onclick = () => RW.me.user ? RW.logout() : RW.openLogin());
