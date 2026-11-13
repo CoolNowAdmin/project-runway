@@ -1055,6 +1055,13 @@ details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:p
 .composer{position:sticky;bottom:0;background:var(--page);padding:10px 16px 12px;border-top:1px solid var(--line);display:flex;gap:8px}
 .composer .inp{flex:1}
 .composer .btn{flex:none}
+/* ---- ask: language and feedback ---- */
+.langbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.langbar label{font:700 .778rem var(--font-ui);color:var(--ink)}
+.langbar .lselw{flex:1 1 180px;max-width:260px}
+.langbar .small,.fb .small{flex:1 1 100%;margin:0;color:var(--ink-2)}
+.mlang{display:contents}
+.fb{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 
 /* more + docs */
 .list{display:flex;flex-direction:column;border-radius:var(--radius-card);overflow:hidden;background:var(--beige-2)}
@@ -1759,6 +1766,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
         <nav aria-label="Breadcrumb" class="crumbs"><ol><li><button type="button" data-go="">Home</button></li><li aria-current="page">Ask</li></ol></nav>
         <div class="scr-h"><h1>Ask Runway</h1><p class="ui" style="font-size:.9rem">Answers come from CPF, HDB and MND.</p></div>
         <div class="voicebar" data-st="Azure Speech en-SG voice"><label><input type="checkbox" id="autoRead"> Read answers aloud</label><span id="voiceName">Checking voices…</span></div>
+        <div class="langbar"><label for="askLang">Answer language</label><span class="lselw"><select class="lsel" id="askLang" aria-describedby="langNote"><option value="en" lang="en">English</option><option value="zh" lang="zh-Hans">中文</option><option value="ms" lang="ms">Bahasa Melayu</option><option value="ta" lang="ta">தமிழ்</option></select><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><p class="small" id="langNote">Answers in your language; official quotes and figures stay in English.</p></div>
         <div class="upcard" data-st="st.file_uploader → extract → recommend">
           <b class="ui" style="font-size:1rem;color:var(--ink)">Have a document? I can suggest towns.</b>
           <p class="small" style="color:var(--ink)">Upload your notes, budget, or HFE letter. I read your age, budget, CPF and flat type, then rank towns using recent sales.</p>
@@ -2826,6 +2834,11 @@ function renderList(){
 }
 
 /* ---------- Ask Runway ---------- */
+// Answer language: AI answers, read-aloud and voice input only; like Text size it lasts for the visit and is not stored.
+const LANGS={en:{tag:'en',name:'English',rec:'en-SG',voice:/^en/i}, zh:{tag:'zh-Hans',name:'Chinese',rec:'zh-CN',voice:/^(zh|cmn)/i},
+  ms:{tag:'ms',name:'Malay',rec:'ms-MY',voice:/^ms/i}, ta:{tag:'ta',name:'Tamil',rec:'ta-SG',voice:/^ta/i}};
+S.lang='en';
+$('#askLang').onchange=e=>{ S.lang = LANGS[e.target.value] ? e.target.value : 'en'; pickVoice(); };
 const SUGG=['Can I still use CPF for an old flat?','Is my HDB loan cut too?','How long can my loan be?','Why do short leases cost more in Clementi than Yishun?'];
 // Follow-up questions, picked by the words in the latest question and answer (no AI needed).
 const FOLLOW=[
@@ -2887,8 +2900,9 @@ async function ask(q, ctx){
   S.chat.push(typing); renderChat();
   let b;
   try{
-    const r = await RW.send('ask', {q, facts: ctx ? flatFacts(ctx) : null, history: prior, age: (S.onbDone||S.ageSet) ? S.age : null});
+    const r = await RW.send('ask', {q, facts: ctx ? flatFacts(ctx) : null, history: prior, age: (S.onbDone||S.ageSet) ? S.age : null, lang: S.lang});
     b = {html: md(r.text) + (r.note ? `<p class="small">${esc(r.note)}</p>` : ''), src: r.sources, open: !!r.offline, warn: r.blocked === 'personal', skip: !!r.blocked}; if(r.blocked) mine.skip = true;
+    b.lang = LANGS[r.lang] ? r.lang : 'en'; if(!r.blocked && !r.offline) b.fb = {q, v:null};  // only AI answers get Helpful / Not helpful
   }catch(e){ b = {warn:true, html:'<p>Runway could not reach its documents just now. Try again in a moment.</p>'}; }
   S.chat.splice(S.chat.indexOf(typing), 1);
   pushBot(b);
@@ -2897,8 +2911,11 @@ const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 const INTRO='<p>Hello. Ask me about using CPF, HDB loans, or lease. You can speak or type. I answer from official documents.</p>';
 function renderChat(){
   const all=[{bot:true,html:INTRO}].concat(S.chat);
-  $('#chat').innerHTML = all.map((m,i)=>m.me?`<div class="msg me">${m.html}</div>`:`<div class="msg bot ${m.warn?'warn':''}"><span class="who">Runway</span>${m.html}${m.src?srcHtml(m.src):''}<button type="button" class="speakbtn" data-say="${i}" aria-pressed="false">${SPK}Listen</button></div>`).join('');
-  $$('[data-say]').forEach(b=>b.onclick=()=>{const m=all[+b.dataset.say];if(b.getAttribute('aria-pressed')==='true'){stopSpeak();return;}speak(plain(m.html),b);});
+  $('#chat').innerHTML = all.map((m,i)=>m.me?`<div class="msg me">${m.html}</div>`:`<div class="msg bot ${m.warn?'warn':''}"><span class="who">Runway</span>${m.lang&&m.lang!=='en'?`<div class="mlang" lang="${LANGS[m.lang].tag}">${m.html}</div>`:m.html}${m.src?srcHtml(m.src):''}<button type="button" class="speakbtn" data-say="${i}" aria-pressed="false">${SPK}Listen</button>${m.fb?fbHtml(m,i):''}</div>`).join('');
+  $$('[data-say]').forEach(b=>b.onclick=()=>{const m=all[+b.dataset.say];if(b.getAttribute('aria-pressed')==='true'){stopSpeak();return;}speak(plain(m.html),b,m.lang);});
+  $$('[data-fb]').forEach(b=>b.onclick=()=>{const m=all[+b.dataset.fb]; if(m.fb.v===b.dataset.v) return; m.fb.v=b.dataset.v;
+    b.parentElement.querySelectorAll('[data-fb]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    RW.send('feedback',{rating:m.fb.v, lang:m.lang||'en', q:m.fb.q.length<=300?m.fb.q:''}).catch(()=>{});});  // never calls the AI
   const hasSum=S.chat.some(m=>m.me);
   $('#sugg').innerHTML = suggestions().map(s=>`<button class="chip" type="button" data-q="${esc(s)}">${esc(s)}</button>`).join('') + (hasSum?`<button class="chip" type="button" id="sumBtn" data-st="summarise chain">Sum up this chat</button>`:'');
   $$('#sugg [data-q]').forEach(c=>c.onclick=()=>ask(c.dataset.q));
@@ -2906,7 +2923,8 @@ function renderChat(){
   const sc=$('#scrAsk'); requestAnimationFrame(()=>sc.scrollTop=sc.scrollHeight);
 }
 $('#autoRead').onchange=e=>{ if(!e.target.checked){stopSpeak();return;} const btns=$$('[data-say]'); if(btns.length) btns[btns.length-1].click(); };
-function pushBot(b){S.chat.push(b);renderChat();$('#chatLive').textContent=plain(b.html);if($('#autoRead').checked){const btns=$$('[data-say]');speak(plain(b.html),btns[btns.length-1]);}}
+function fbHtml(m,i){return `<div class="fb" role="group" aria-label="Was this answer helpful?">${[['up','Helpful'],['down','Not helpful']].map(([v,t])=>`<button type="button" class="chip" data-fb="${i}" data-v="${v}" aria-pressed="${m.fb.v===v}">${t}</button>`).join('')}<p class="small">A vote keeps this question, unless it has personal details, to improve Runway.</p></div>`;}
+function pushBot(b){S.chat.push(b);renderChat();$('#chatLive').textContent=plain(b.html);if($('#autoRead').checked){const btns=$$('[data-say]');speak(plain(b.html),btns[btns.length-1],b.lang);}}
 function plain(h){const d=document.createElement('div');d.innerHTML=h;d.querySelectorAll('.small').forEach(x=>x.remove());return d.textContent.replace(/\s+/g,' ').trim();}
 
 /* ---------- document upload → profile → town recommendations ---------- */
@@ -3006,16 +3024,21 @@ function pickVoice(){
   const vs=TTS.getVoices();
   VOICE = vs.find(v=>/en[-_]SG/i.test(v.lang)) || vs.find(v=>/singapore/i.test(v.name)) || vs.find(v=>/en[-_]GB/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)) || null;
   const sg = VOICE && (/en[-_]SG/i.test(VOICE.lang)||/singapore/i.test(VOICE.name));
+  if(S.lang!=='en'){ const v=langVoice(S.lang), n=LANGS[S.lang].name;  // never read Tamil with an English voice
+    $('#voiceName').textContent = v ? `Voice: ${v.name.replace(/\s*\(.*\)/,'')} (${n})` : `No ${n} voice on this device, so answers in ${n} can't be read aloud.`; return; }
   $('#voiceName').textContent = !vs.length ? 'Voice: device default' : sg ? `Voice: ${VOICE.name.replace(/\s*\(.*\)/,'')} (Singapore English)` : `No Singapore voice on this device. Using ${VOICE?VOICE.name.replace(/\s*\(.*\)/,''):'the default'}.`;
 }
 if(TTS){pickVoice(); TTS.onvoiceschanged=pickVoice;} else pickVoice();
 let speakingBtn=null;
 function stopSpeak(){if(TTS)TTS.cancel();if(speakingBtn){speakingBtn.setAttribute('aria-pressed','false');speakingBtn.lastChild.textContent='Listen';}speakingBtn=null;}
-function speak(text,btn){
+function langVoice(lang){ const vs=TTS?TTS.getVoices():[], re=LANGS[lang].voice; return vs.find(v=>re.test(v.lang)&&/SG/i.test(v.lang)) || vs.find(v=>re.test(v.lang)) || null; }
+function speak(text,btn,lang='en'){
   if(!TTS) return;
   stopSpeak();
-  const u=new SpeechSynthesisUtterance(text.replace(/\$/g,' dollars ').replace(/ dollars ([\d,]+)/g,' $1 dollars'));
-  if(VOICE){u.voice=VOICE;u.lang=VOICE.lang;} else u.lang='en-SG';
+  const voice = lang==='en' ? VOICE : langVoice(lang);
+  if(lang!=='en' && !voice){ if(btn) btn.lastChild.textContent=`No ${LANGS[lang].name} voice on this device`; return; }
+  const u=new SpeechSynthesisUtterance(lang==='en' ? text.replace(/\$/g,' dollars ').replace(/ dollars ([\d,]+)/g,' $1 dollars') : text);
+  if(voice){u.voice=voice;u.lang=voice.lang;} else u.lang='en-SG';
   u.rate=.92;
   if(btn){speakingBtn=btn;btn.setAttribute('aria-pressed','true');btn.lastChild.textContent='Stop';}
   u.onend=u.onerror=()=>{if(speakingBtn===btn)stopSpeak();};
@@ -3023,16 +3046,17 @@ function speak(text,btn){
   setTimeout(()=>TTS.speak(u),60);  // Chrome silently skips a speak() right after cancel()
 }
 
-/* ---------- voice: speech to text (en-SG) ---------- */
+/* ---------- voice: speech to text (in the answer language; en-SG for English) ---------- */
 let REC=null;
 $('#micBtn').onclick=()=>{
   if(REC){REC.stop();return;}
   if(!SR){pushBot({warn:true,html:'<p>Voice input is not available in this browser. You can type your question instead.</p>'});return;}
-  REC=new SR(); REC.lang='en-SG'; REC.interimResults=true; REC.maxAlternatives=1;
+  REC=new SR(); REC.lang=LANGS[S.lang].rec; REC.interimResults=true; REC.maxAlternatives=1;
   const mb=$('#micBtn'); mb.classList.add('on'); mb.setAttribute('aria-pressed','true'); $('#askIn').placeholder='Listening…';
   let finalText='';
   REC.onresult=e=>{let s='';for(const r of e.results){s+=r[0].transcript;if(r.isFinal)finalText=s;}$('#askIn').value=s;};
-  REC.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture')pushBot({warn:true,html:'<p>The microphone is blocked, so I could not hear you. Allow the microphone and tap the mic again, or type your question.</p>'});};
+  REC.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture')pushBot({warn:true,html:'<p>The microphone is blocked, so I could not hear you. Allow the microphone and tap the mic again, or type your question.</p>'});
+    if(e.error==='language-not-supported')pushBot({warn:true,skip:true,html:`<p>Voice input in ${LANGS[S.lang].name} is not available in this browser. You can type your question instead.</p>`});};
   REC.onend=()=>{mb.classList.remove('on');mb.setAttribute('aria-pressed','false');$('#askIn').placeholder='Type or tap the mic';REC=null;const v=($('#askIn').value||finalText).trim();if(v){$('#askIn').value='';ask(v);}};
   try{REC.start();setTimeout(()=>{if(REC)REC.stop();},10000);}catch(err){REC.onend();}
 };
@@ -3239,10 +3263,15 @@ function privacyHtml(){
   <p>Runway is a free educational prototype. This page describes what happens to what you type or upload, as the app is built today. Runway has no public accounts, no database, no analytics and no advertising.</p>
   <h2>Questions you ask</h2><ul>
     <li>Before a question leaves your browser, Runway checks it for an NRIC number, a Singapore phone number or an email address. If it finds one, the question is not sent, and Runway asks you to remove it.</li>
-    <li>Other questions go to Runway's server, with the last few turns of your chat and, once you have set it, the youngest buyer's age. The server checks the question again and declines personal details, attempts to change its rules, requests for advice and off-topic questions without using the AI.</li>
+    <li>Other questions go to Runway's server, with the last few turns of your chat, the answer language you chose and, once you have set it, the youngest buyer's age. The server checks the question again and declines personal details, attempts to change its rules, requests for advice and off-topic questions without using the AI.</li>
     <li>When the AI is switched on, the server sends OpenAI your question, up to six recent turns of the chat, the youngest buyer's age if you set it, and the matching passages from the official documents, so that it can write the answer. It also sends your question and your previous one to OpenAI to search the documents. When the AI is off or busy, nothing goes to OpenAI and you see the official pages instead.</li>
     <li>"Why?" on a flat asks the AI to explain that flat's figures from Runway's calculator (the youngest buyer's age, the lease, the percentages and the town's lease effect); the AI gets no chat history for it. "Sum up this chat" sends the chat so far, and the AI sees the last 12 turns.</li>
     <li>Voice input uses your browser's speech recognition. Some browsers, such as Chrome, send the audio to their own speech service; Runway only receives the text. Reading answers aloud uses your device's voices.</li></ul>
+  <h2>Answer feedback</h2><ul>
+    <li>Pressing Helpful or Not helpful under an answer sends Runway's server your vote, the answer language and the question you asked. A vote never uses the AI.</li>
+    <li>The server checks the question again. If it has an NRIC number, a Singapore phone number or an email address, or is a question Runway declines, the question is dropped and only the vote and the language are kept.</li>
+    <li>Each vote is kept as one line: the vote, the answer language, the question (if kept) and the date, plus empty fields the team fills in to turn it into a test question. No name, login, address or time of day. The line goes to the server log, and to a file on the server when one can be written. The team reads these lines to find questions Runway answers badly.</li>
+    <li>Changing your vote records a new line. One visit can record up to 30 votes.</li></ul>
   <h2>Documents you upload</h2><ul>
     <li>Your file is read in this browser and is not uploaded. PDF files are read with PDF.js, which the page downloads from cdnjs.cloudflare.com; your file is not sent there.</li>
     <li>Names, NRIC numbers, phone numbers and email addresses are removed in the browser before Runway looks for your age, budget, CPF and flat type.</li>
@@ -3256,7 +3285,7 @@ function privacyHtml(){
     <li>When you open a flat on the map, the page sends Runway's server that sale's town, street, flat type, floor area, remaining lease and price, all from the public sales on the map, to compare it with similar sales. Nothing you typed goes with it: not your age, not your CPF.</li></ul>
   <h2>What the server keeps</h2><ul>
     <li>While your page is open, the server keeps your session in memory: the replies it has sent you, whether you are logged in, and whether the map data has been sent. Nothing is written to a database, and the session is gone when it ends, for example when you reload or close the page.</li>
-    <li>Runway's code writes to the server log only when something fails: the kind of request and the error. It does not write your questions or files to the log.</li></ul>
+    <li>Runway's code writes to the server log when something fails (the kind of request and the error) and when you vote on an answer (the line described under Answer feedback). It does not write your other questions or your files to the log.</li></ul>
   <h2>Cookies and browser storage</h2><ul>
     <li>Runway's own code sets no cookies. It keeps exactly one thing in your browser's local storage: whether you turned on Dark mode, under the name runway-theme. Nothing else is stored, and that setting never leaves your device. Your details, shortlist and chat live only in the open page and are lost when you reload it, so there is no cookie banner.</li>
     <li>The optional household income, grant details and bank rate you enter are used only for the sums in your browser. They are never sent to Runway's server or to OpenAI, not even with a question.</li>

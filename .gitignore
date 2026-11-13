@@ -8,6 +8,9 @@ demo_accounts.local.toml
 # Raw downloads (the combined data/resale.parquet is committed instead)
 data/raw/
 
+# Answer feedback votes written by the running app (runway/bridge.py)
+data/feedback.jsonl
+
 # Python
 __pycache__/
 *.pyc
