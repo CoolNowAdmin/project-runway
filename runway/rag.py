@@ -61,9 +61,13 @@ def window(words: list[str], size: int = CHUNK_WORDS, overlap: int = OVERLAP_WOR
     return [words[i : i + size] for i in range(0, len(words) - overlap, step)]
 
 
-def load_chunks(corpus_dir: Path = CORPUS_DIR) -> list[Chunk]:
+def load_chunks(corpus_dir: Path | None = None) -> list[Chunk]:
+    """The committed documents plus any a reviewer uploaded since the last start (runway.content)."""
+    from runway.content import corpus_files
+
+    paths = corpus_files().values() if corpus_dir is None else sorted(corpus_dir.glob("*.md"))
     chunks: list[Chunk] = []
-    for path in sorted(corpus_dir.glob("*.md")):
+    for path in paths:
         meta, body = parse_doc(path)
         for heading, text in split_sections(body):
             for words in window(text.split()):

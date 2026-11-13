@@ -60,6 +60,28 @@ No passwords are stored in this repository. `scripts/seed_users.py` creates the 
 It writes only a salted PBKDF2 hash to `.streamlit/secrets.toml` (also gitignored). For a deployed app, paste that
 file's contents into **Streamlit Community Cloud > App settings > Secrets**. Use `--rotate` for a new password.
 
+### Reviewer tools
+
+A logged-in reviewer sees a green **Reviewer view** pill on every screen, and a **Reviewer tools** group in More:
+
+- **Upload Ask documents**: a PDF, web page (HTML), Markdown or text file (up to 6 MB) becomes a document in
+  `data/corpus/`, added or replacing one, and Ask Runway searches it from the next question.
+- **Edit pages**: About Us and How it works (reviewer and public versions), Privacy Policy and Terms have an
+  *Edit this page* button; the FAQ has an editor to add, change or remove questions. *Restore* puts back the built text.
+
+The server checks the reviewer login for every change (`runway/content.py`) and cleans edited page HTML to plain
+formatting and links. A change takes effect at once. Streamlit Community Cloud wipes the app's disk on every redeploy,
+so to keep changes, add a GitHub token to the Secrets: the app then commits each one (`data/content.json`,
+`data/corpus/<slug>.md`) to the repo.
+
+```toml
+GITHUB_TOKEN = "github_pat_..."   # fine-grained token: this repository only, Contents: Read and write
+# GITHUB_REPO = "dansyfq/project-runway"   # the defaults
+# GITHUB_BRANCH = "main"
+```
+
+Each commit redeploys the app. Without a token, changes last until the app next restarts.
+
 ## Deploy (Streamlit Community Cloud)
 
 1. Push this repo to GitHub.

@@ -14,6 +14,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from runway.bridge import PAGES, handle
+from runway.content import load_content
 from runway.game_data import load_game_data
 from runway.llm import LLM
 from runway.rag import Retriever, load_chunks
@@ -109,7 +110,7 @@ def missing_page() -> bool:
     return pg.url_path == "" and bool(asked) and asked[-1] not in PAGES
 
 
-msg = runway_game(me=me, data=data, replies=replies[-5:], page=pg.url_path, missing=missing_page(), key="runway", default=None)
+msg = runway_game(me=me, data=data, content=load_content(), replies=replies[-5:], page=pg.url_path, missing=missing_page(), key="runway", default=None)
 
 if isinstance(msg, dict) and isinstance(msg.get("id"), str) and len(msg["id"]) <= 64 and msg["id"] not in handled:  # untrusted
     if len(handled) > 500:  # only the latest message is ever delivered again, so old ids can go
@@ -120,6 +121,8 @@ if isinstance(msg, dict) and isinstance(msg.get("id"), str) and len(msg["id"]) <
     except Exception as exc:  # always answer: without a reply the interface waits 90 s
         print(f"[runway] {str(msg.get('type'))[:40]!r} failed: {type(exc).__name__}: {exc}")
         reply = {"ok": False, "error": "Something went wrong. Try again."}
+    if msg.get("type") == "upload_doc" and reply.get("ok"):
+        retriever.clear()  # the next question searches the new document too
     replies.append({"id": msg["id"], "value": reply})
     del replies[:-5]  # only the last five are ever sent; in place, so logout's clear() still reaches this list
     if msg.get("type") == "nav" and reply.get("ok") and reply["page"] != pg.url_path:

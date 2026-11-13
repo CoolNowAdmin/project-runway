@@ -11,6 +11,9 @@ data/raw/
 # Answer feedback votes written by the running app (runway/bridge.py)
 data/feedback.jsonl
 
+# Reviewer uploads and edits on the running app's own disk (committed copies go to data/corpus and data/content.json)
+data/runtime/
+
 # Python
 __pycache__/
 *.pyc

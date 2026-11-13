@@ -2,8 +2,8 @@
 
 The interface sends one message at a time: {"id", "type", "payload"}. `handle` returns the reply
 value; the host sends it back keyed by id. Everyone can use Runway as a guest (the "demo" view);
-logging in gives the reviewer view (full About Us and How it works). Passwords, the AI and the
-documents stay server-side.
+logging in gives the reviewer view (full About Us and How it works) and the reviewer tools: upload Ask documents
+and edit pages and the FAQ (runway/content.py). Passwords, the AI and the documents stay server-side.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ PAGES = {"": "Runway — HDB CPF age-95 checker", "map": "Map", "shortlist": "Sh
          "more": "More", "details": "Your details", "text-size": "Text size", "about": "About Us",
          "how-it-works": "How it works", "sources": "Sources and credits", "privacy": "Privacy Policy", "terms": "Terms",
          "faq": "FAQ", "case-study": "Case study", "timeline": "Buying timeline"}
+REVIEWER_ONLY = {"docs", "upload_doc", "save_page", "save_faq"}  # runway/content.py
 MAX_ATTEMPTS = 5
 LOCKOUT_SECONDS = 60
 # username -> (failed attempts, locked until). Module-level, so a page reload (a new session) can't reset it.
@@ -103,6 +104,19 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
         state["role"] = "brief"
         state.get("replies", []).clear()  # in place: the host appends this reply to the same list
         return {"ok": True, "role": "brief"}
+
+    if kind in REVIEWER_ONLY:  # checked here, not just hidden in the interface: the browser is untrusted
+        if state.get("role") != "full":
+            return {"ok": False, "error": "Log in as a reviewer first."}
+        from runway import content
+
+        if kind == "docs":
+            return {"ok": True, "docs": content.list_docs()}
+        if kind == "upload_doc":
+            return content.add_doc(payload)
+        if kind == "save_page":
+            return content.save_page(str(payload.get("key", "")), payload.get("html", ""))
+        return content.save_faq(payload.get("items"))
 
     if kind == "nav":  # the address bar follows the screen; only page names, never anything the user typed
         page = payload.get("page")

@@ -1400,6 +1400,22 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 /* login overlay */
 .lover{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(17,17,17,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fadeIn .2s var(--ease-out)}
 .lover[hidden]{display:none}
+.lok{display:flex;align-items:center;gap:12px;background:var(--ok-soft);color:var(--ok);border-radius:var(--radius-btn);padding:14px 16px;font:700 .944rem var(--font-ui)}
+.lok[hidden]{display:none}
+/* Reviewer view: a pill that stays on every screen while logged in; it opens More, where the reviewer tools are */
+.revbar{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:150;display:flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border:0;border-radius:999px;background:var(--ok);color:var(--snow);font:500 .778rem var(--font-ui);box-shadow:0 8px 24px -8px rgba(17,17,17,.45);cursor:pointer;animation:revIn .5s var(--ease-drawer) both}
+.revbar[hidden]{display:none}
+.revbar .dot{width:9px;height:9px;border-radius:50%;background:var(--sign);box-shadow:0 0 0 3px color-mix(in srgb,var(--sign) 35%,transparent)}
+@keyframes revIn{0%{transform:translateY(-140%)}70%{transform:translateY(8%)}}
+@media (prefers-reduced-motion:reduce){.revbar{animation:none}}
+.revcard{display:flex;flex-direction:column;gap:6px;background:var(--ok-soft);border-left:5px solid var(--ok);border-radius:var(--radius-card);padding:14px 16px}
+.revcard b{color:var(--ok);font:700 1rem var(--font-ui)}
+.revedit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--ok-soft);border-radius:var(--radius-card);padding:10px 12px}
+.revedit .small{flex-basis:100%;margin:0}
+.doctext[contenteditable=true]{outline:3px dashed var(--ok);outline-offset:8px;border-radius:4px}
+.faqed{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px}
+.faqed textarea.inp{min-height:120px;padding:12px 16px;resize:vertical}
+.doclist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .lover .card{position:relative;width:100%;max-width:420px;background:var(--snow);border-radius:var(--radius-card);padding:28px 24px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 40px 80px -30px rgba(0,0,0,.45)}
 .lover .card h2{font-size:1.5rem;margin:0}
 .lover .card .lbrand{margin-bottom:4px}
@@ -1800,10 +1816,12 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
         <label class="field"><span>Username</span><input class="inp" id="u" autocomplete="username" autocapitalize="none" required></label>
         <div class="field"><label for="pw"><span>Password</span></label><div class="pwbox"><input class="inp" id="pw" type="password" autocomplete="current-password" required><button type="button" class="pweye" id="pwEye" aria-pressed="false" aria-controls="pw">Show</button></div></div>
         <p class="err" id="loginErr" role="alert" hidden>That username and password don't match.</p>
+        <div class="lok" id="loginOk" role="status" hidden><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span></span></div>
         <button class="btn primary" type="submit" id="loginBtn">Log in</button>
       </form>
     </div>
     <button type="button" class="totop" id="toTop" aria-label="Back to top" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+    <button type="button" class="revbar" id="revBar" hidden><span class="dot" aria-hidden="true"></span><span><b>Reviewer view</b> · <span id="revUser"></span></span></button>
     <div id="sheetHost"></div>
     <div id="toastHost" role="status"></div>
     <div id="rwLoading" class="rwload" role="status" hidden>
@@ -2025,7 +2043,11 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     const d = ev.data; if(!d || d.type !== 'streamlit:render') return;
     const a = d.args || {};
     (a.replies || []).forEach(r => finish(r.id, r.value));
-    if(a.me) RW.me = a.me;
+    if(a.me){ RW.me = a.me; loginButtons(); }
+    if(a.content){  // reviewer edits to pages and the FAQ, for everyone
+      const j = JSON.stringify(a.content);
+      if(j !== RW.contentJson){ RW.contentJson = j; RW.content = a.content; if(RW.applyContent) RW.applyContent(); }
+    }
     if(a.missing && !RW.missingSeen){  // an unknown address: Streamlit opened Home at /, this says why
       RW.missingSeen = true; const m = document.getElementById('lMissing'); m.hidden = false; m.focus({preventScroll: true});
     }
@@ -2044,7 +2066,13 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     setHeight();
   });
   const overlay = document.getElementById('loginOverlay');
-  function loginButtons(){ const b = document.querySelector('#lLoginBtn .nl'); if(b) b.textContent = RW.me.user ? 'Log out' : 'Log in'; if(RW.navTitles) RW.navTitles(); }
+  function loginButtons(){
+    const b = document.querySelector('#lLoginBtn .nl'); if(b) b.textContent = RW.me.user ? 'Log out' : 'Log in'; if(RW.navTitles) RW.navTitles();
+    const bar = document.getElementById('revBar'), on = !!RW.me.user;
+    if(bar.hidden === on){ bar.hidden = !on; document.getElementById('revUser').textContent = RW.me.user || ''; }
+    bar.title = on ? 'Logged in as ' + RW.me.user + '. Open More for the reviewer tools.' : '';
+  }
+  document.getElementById('revBar').onclick = () => RW.go('more');
   RW.openLogin = () => { overlay.hidden = false; document.getElementById('loginErr').hidden = true; setTimeout(() => document.getElementById('u').focus(), 30); };
   const pw = document.getElementById('pw'), eye = document.getElementById('pwEye');
   const maskPw = show => { pw.type = show ? 'text' : 'password'; eye.textContent = show ? 'Hide' : 'Show'; eye.setAttribute('aria-pressed', show); };
@@ -2063,9 +2091,13 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
       const r = await RW.send('login', {u: document.getElementById('u').value, p: document.getElementById('pw').value});
       RW.send('noop').catch(() => {});  // Streamlit keeps the last message sent: replace the one holding the password
       if(r && r.ok){
-        document.getElementById('pw').value = ''; closeLogin();
+        document.getElementById('pw').value = '';
         RW.me = {user: r.user, role: r.role}; loginButtons();
         if(window.RWAPP) RWAPP.setUser(r.user, r.role);
+        // say so in the dialog before it closes, so a successful log-in can't be missed
+        const ok = document.getElementById('loginOk'); ok.querySelector('span').textContent = `Logged in as ${r.user}. Reviewer view is on.`;
+        ok.hidden = false; form.querySelectorAll('.field, #loginBtn').forEach(x => x.hidden = true);
+        setTimeout(() => { closeLogin(); ok.hidden = true; form.querySelectorAll('.field, #loginBtn').forEach(x => x.hidden = false); }, 1600);
       } else { err.textContent = (r && r.error) || "That username and password don't match."; err.hidden = false; }
     }catch(x){ err.textContent = 'Runway did not respond. Try again.'; err.hidden = false; }
     btn.disabled = false; btn.textContent = 'Log in';
@@ -2127,6 +2159,12 @@ const FAQ = [
   {"q": "Can I still use CPF for my housing loan after 55?", "a": "Yes. You can keep using your Ordinary Account savings to pay your housing loan after you turn 55. On your 55th birthday a Retirement Account is created and savings up to your Full Retirement Sum move into it from your Special and Ordinary Accounts. Before 55 you can apply to reserve Ordinary Account savings for your loan repayments.", "doc": "cpf-faq-housing-loan-after-55", "title": "Can I use my CPF savings to pay for my housing loan after I turn 55?", "publisher": "CPF Board", "url": "https://www.cpf.gov.sg/service/article/can-i-use-my-cpf-savings-to-pay-for-my-housing-loan-after-i-turn-55"}
 ];
 /* end FAQ */
+const FAQ_BUILT = FAQ.slice();  // a reviewer's FAQ replaces the list in place; "Restore" brings this back
+RW.applyContent = () => {
+  const c = RW.content || {};
+  FAQ.splice(0, FAQ.length, ...(Array.isArray(c.faq) ? c.faq : FAQ_BUILT));
+  if(RW.onContent) RW.onContent();  // the open page shows the change (set by startRunway)
+};
 // Buying timeline: each step rests on one official document in data/corpus (tests check the metadata and the figures).
 const TIMELINE = [
   {"t": "Get your HFE letter", "a": "Apply on the HDB Flat Portal with your Singpass. The letter sets out your housing and financing options so you can plan a budget, and you can ask participating banks for an In-Principle Approval at the same time. Applying is free.", "when": "Up to a month once HDB has all your documents, and longer around sales exercises. The letter is valid for 9 months, and it must be valid when you get the Option to Purchase and when you submit the resale application.", "doc": "hdb-hfe-letter", "title": "Application for an HDB Flat Eligibility (HFE) Letter", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/flat-grant-and-loan-eligibility/application-for-an-hdb-flat-eligibility-hfe-letter"},
@@ -2700,7 +2738,7 @@ document.addEventListener('keydown',e=>{
   if(!$('#sheetHost .sheet')) return;
   if(e.key==='Escape') return closeSheet();
   if(e.key!=='Tab') return;
-  const f=$$('#sheetHost button,#sheetHost a[href],#sheetHost input,#sheetHost select,#sheetHost summary').filter(x=>!x.disabled&&x.offsetParent), a=f[0], z=f[f.length-1];
+  const f=$$('#sheetHost button,#sheetHost a[href],#sheetHost input,#sheetHost select,#sheetHost textarea,#sheetHost summary').filter(x=>!x.disabled&&x.offsetParent), a=f[0], z=f[f.length-1];
   if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus();} else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus();}
 });
 function closeSheet(e){ const had=$('#sheetHost .sheet:not(.out)');
@@ -3108,19 +3146,23 @@ function renderMore(){
   const row=(k,name,note)=>`<button data-sub="${k}"><span>${name}<small>${note}</small></span>${ICON.chev}</button>`;
   const group=(id,title,rows)=>`<section class="mgrp" aria-labelledby="mg-${id}"><h2 class="label" id="mg-${id}">${title}</h2><div class="list">${rows.join('')}</div></section>`;
   $('#moreBody').innerHTML=`${crumbs('More')}
-    <div class="scr-h"><h1>More</h1>${S.user?`<p class="ui" style="font-size:.9rem">Logged in as ${esc(S.user)}</p>`:''}</div>
+    <div class="scr-h"><h1>More</h1></div>
+    ${REV()?`<div class="revcard" role="status"><b>Logged in as ${esc(S.user)}: reviewer view is on</b><span class="small">About Us and How it works show the full versions. You can upload Ask documents and edit the pages below.</span></div>
+    ${group('rev','Reviewer tools',[`<button type="button" data-rev="upload"><span>Upload Ask documents<small>Add or replace an official document that Ask Runway searches</small></span>${ICON.chev}</button>`,row('about','Edit About Us','Open the page, then choose Edit this page'),row('method','Edit How it works','Reviewer and public versions'),row('faq','Edit the FAQ','Add, change or remove questions')])}`:''}
     ${group('you','Your settings',[row('details','Your details',`Youngest ${S.age} · average ${S.avg} · CPF ${S.oaSet?exact(S.oa):'not given'}`),row('size','Text size',`${textPx()} px`)])}
     ${group('guides','Guides',[row('faq','FAQ','Common questions, each with its official source'),row('timeline','Buying timeline','The steps from HFE letter to keys, each with its official source'),row('case','Case study','One flat type, two towns, two leases, from real sales')])}
     ${group('about','About Runway',[row('about','About Us','What Runway is, notice, team'),row('method','How it works','Methodology and flowcharts'),row('sources','Sources and credits','Data, map, documents, photos')])}
     ${group('legal','Legal',[row('privacy','Privacy Policy','What happens to what you type or upload'),row('terms','Terms','Educational use, no advice, licences')])}
     ${S.user?'<button class="btn ghost" type="button" id="outBtn">Log out</button>':'<button class="btn" type="button" id="inBtn">Log in for the reviewer view</button>'}`;
   $$('[data-sub]').forEach(b=>b.onclick=()=>sub(b.dataset.sub));
+  const ub=$('[data-rev="upload"]'); if(ub) ub.onclick=openUpload;
   const ob=$('#outBtn'); if(ob) ob.onclick=signOut;
   const ib=$('#inBtn'); if(ib) ib.onclick=()=>RW.openLogin();
 }
 function signOut(){closeSheet();RW.logout();}
 const SUBNAME={details:'Your details',size:'Text size',about:'About Us',method:'How it works',sources:'Sources and credits',privacy:'Privacy Policy',terms:'Terms',faq:'FAQ',case:'Case study',timeline:'Buying timeline'};
 function renderSub(){
+  S.editing=false;  // a fresh page is never mid-edit
   const b=$('#subBody'), s=S.sub, top=crumbs(['more','More'],SUBNAME[s]);
   if(s==='details'){
     b.innerHTML=`${top}<h1>Your details</h1>
@@ -3153,12 +3195,10 @@ function renderSub(){
       <p class="notice" style="font-size:inherit;color:var(--ink)">The flat has 55 lease years left. This is how text reads at this size.</p>`;
     bindSlider('szW',px=>{document.documentElement.style.fontSize=px===17?'':px/.944+'px';});
   } else if(s==='sources'){ b.innerHTML=top+sourcesHtml(); }
-  else if(s==='about'){ b.innerHTML=top+aboutHtml(); }
-  else if(s==='method'){ b.innerHTML=top+methodHtml(); }
-  else if(s==='privacy'){ b.innerHTML=top+privacyHtml(); }
-  else if(s==='terms'){ b.innerHTML=top+termsHtml(); }
+  else if(PAGEKEY[s]){ b.innerHTML=top+editBar(s)+pageHtml(s); bindEditBar(s); }
   else if(s==='faq'){
-    b.innerHTML=top+faqHtml();
+    b.innerHTML=top+(REV()?`<div class="revedit"><button type="button" class="btn sm" id="faqEdit">Edit the FAQ</button>${Array.isArray((RW.content||{}).faq)?'<span class="small">Visitors see your edited FAQ.</span>':''}</div>`:'')+faqHtml();
+    if($('#faqEdit')) $('#faqEdit').onclick=openFaqEditor;
     const q=$('#faqQ'), filter=()=>{const t=q.value.trim(), hit=new Set(faqFilter(FAQ,t));
       $$('[data-faq]').forEach(x=>x.hidden=!hit.has(+x.dataset.faq));
       $('#faqN').textContent=t?`${hit.size} of ${FAQ.length} questions`:''; $('#faqNone').hidden=hit.size>0;};
@@ -3176,7 +3216,118 @@ function renderSub(){
 const textPx=()=>Math.round(parseFloat(getComputedStyle(document.documentElement).fontSize)*.944);
 
 const SRCI=(t,d,u)=>`<div class="srcitem"><b>${t}</b>${d}${u?`<br><a href="${u}" target="_blank" rel="noopener">${u.replace(/^https:\/\//,'')}</a>`:''}</div>`;
-const FULL = () => S.role === 'full';
+const REV = () => S.role === 'full';  // logged in as a reviewer (the server checks this again for every change)
+const FULL = () => REV() && !S.asPublic;  // a reviewer can look at, and edit, the public version too
+
+/* ---------- reviewer tools: edit pages, edit the FAQ, upload Ask documents (saved by runway/content.py) ---------- */
+// About Us and How it works have a reviewer and a public version; each page's saved text replaces the built one
+const PAGEKEY={about:()=>'about.'+(FULL()?'full':'brief'), method:()=>'method.'+(FULL()?'full':'brief'), privacy:()=>'privacy', terms:()=>'terms'};
+const PAGEBUILT={about:()=>aboutHtml(), method:()=>methodHtml(), privacy:()=>privacyHtml(), terms:()=>termsHtml()};
+const edited=k=>((RW.content||{}).pages||{})[k];
+const pageHtml=s=>{const o=edited(PAGEKEY[s]()); return o?`<div class="doctext">${o}</div>`:PAGEBUILT[s]();};  // o was cleaned by the server
+const savedMsg=r=>r.saved==='github'?'Saved. Visitors see it now, and it is kept in GitHub.'
+  :`Saved. Visitors see it now${r.warn?'. '+r.warn:', until the app restarts (no GitHub token is set).'}`;
+const takeContent=r=>{RW.content=r.content; RW.contentJson=JSON.stringify(r.content); RW.applyContent();};
+RW.onContent=()=>{if(!$('#scrSub').hidden&&!S.editing&&!$('#sheetHost .sheet')) renderSub();};
+function editBar(s){
+  if(!REV()) return '';
+  const two=s==='about'||s==='method', has=!!edited(PAGEKEY[s]());
+  return `<div class="revedit">
+    ${two?`<div class="chips" role="group" aria-label="Version to show and edit"><button type="button" class="chip" data-ver="full" aria-pressed="${!S.asPublic}">Reviewer version</button><button type="button" class="chip" data-ver="brief" aria-pressed="${!!S.asPublic}">Public version</button></div>`:''}
+    <button type="button" class="btn sm" id="edGo">Edit this page</button>
+    ${has?'<button type="button" class="btn ghost sm" id="edReset">Restore the original</button>':''}
+    <p class="small" id="edMsg" role="status">${has?'Visitors see your edited text.':''}</p></div>`;
+}
+function bindEditBar(s){
+  S.editing=false;
+  if(!REV()) return;
+  $$('[data-ver]').forEach(c=>c.onclick=()=>{S.asPublic=c.dataset.ver==='brief'; renderSub();});
+  const doc=$('#subBody .doctext'), go=$('#edGo'), msg=$('#edMsg'), rs=$('#edReset');
+  const save=html=>{go.disabled=true; msg.textContent='Saving…';
+    RW.send('save_page',{key:PAGEKEY[s](),html}).then(r=>{
+      if(!r||!r.ok){msg.textContent=(r&&r.error)||'Not saved. Try again.'; go.disabled=false; return;}
+      takeContent(r); renderSub(); $('#edMsg').textContent=savedMsg(r);
+    }).catch(()=>{msg.textContent='Runway did not respond. Nothing was saved.'; go.disabled=false;});};
+  go.onclick=()=>{
+    if(S.editing) return save(doc.innerHTML);
+    S.editing=true; doc.contentEditable='true'; go.textContent='Save'; go.classList.add('primary');
+    go.insertAdjacentHTML('afterend','<button type="button" class="btn ghost sm" id="edCancel">Cancel</button>');
+    $('#edCancel').onclick=()=>renderSub();
+    msg.textContent='Click into the page and type. Headings, lists and links keep their look. Save when you are done.';
+    doc.focus();
+  };
+  if(rs) rs.onclick=()=>{  // two presses, so one stray click can't undo a reviewer's work
+    if(rs.dataset.sure) return save('');
+    rs.dataset.sure=1; rs.textContent='Press again to restore'; msg.textContent='This puts back the page as Runway built it.';
+  };
+}
+function openFaqEditor(){
+  const item=x=>`<section class="faqed" data-doc="${esc(x.doc||'')}">
+    <label class="field"><span>Question</span><input class="inp" data-k="q" maxlength="300" value="${esc(x.q||'')}"></label>
+    <label class="field"><span>Answer</span><textarea class="inp" data-k="a" maxlength="3000">${esc(x.a||'')}</textarea></label>
+    <label class="field"><span>Source title</span><input class="inp" data-k="title" maxlength="200" value="${esc(x.title||'')}"></label>
+    <label class="field"><span>Publisher</span><input class="inp" data-k="publisher" maxlength="80" value="${esc(x.publisher||'')}"></label>
+    <label class="field"><span>Link to the official page</span><input class="inp" data-k="url" type="url" maxlength="500" value="${esc(x.url||'')}"></label>
+    <button type="button" class="btn ghost sm" data-del>Remove this question</button></section>`;
+  openSheet(`<div class="pad fsheet"><h2 style="font-size:1.6rem">Edit the FAQ</h2>
+    <p class="small">Visitors see your changes as soon as you save. Give every answer its official source.</p>
+    <div id="faqItems" style="display:flex;flex-direction:column;gap:16px">${FAQ.map(item).join('')}</div>
+    <button type="button" class="btn sm" id="faqAdd">Add a question</button>
+    <button type="button" class="btn primary" id="faqSave">Save the FAQ</button>
+    ${Array.isArray((RW.content||{}).faq)?'<button type="button" class="btn ghost sm" id="faqRestore">Restore the original FAQ</button>':''}
+    <p class="small" id="faqMsg" role="status"></p></div>`, ()=>{
+    const box=$('#faqItems'), msg=$('#faqMsg');
+    box.onclick=e=>{const d=e.target.closest('[data-del]'); if(d) d.closest('.faqed').remove();};
+    $('#faqAdd').onclick=()=>{box.insertAdjacentHTML('beforeend',item({})); box.lastElementChild.querySelector('input').focus();};
+    const send=items=>{msg.textContent='Saving…';
+      RW.send('save_faq',{items}).then(r=>{
+        if(!r||!r.ok){msg.textContent=(r&&r.error)||'Not saved. Try again.'; return;}
+        takeContent(r); closeSheet(); renderSub(); $('#subBody .revedit').insertAdjacentHTML('beforeend',`<p class="small" role="status">${esc(savedMsg(r))}</p>`);
+      }).catch(()=>{msg.textContent='Runway did not respond. Nothing was saved.';});};
+    $('#faqSave').onclick=()=>send($$('#faqItems .faqed').map(sec=>{const o={doc:sec.dataset.doc}; sec.querySelectorAll('[data-k]').forEach(f=>o[f.dataset.k]=f.value.trim()); return o;}));
+    const rb=$('#faqRestore'); if(rb) rb.onclick=()=>{if(rb.dataset.sure) return send(null); rb.dataset.sure=1; rb.textContent='Press again to restore the original FAQ';};
+  });
+}
+function openUpload(){
+  openSheet(`<div class="pad fsheet"><h2 style="font-size:1.6rem">Upload Ask documents</h2>
+    <p class="small">PDF, web page (HTML), Markdown or text, up to 6 MB. Ask Runway searches it as soon as it is added. Use official pages only: answers quote them.</p>
+    <label class="field"><span>File</span><input class="inp" id="upFile" type="file" accept=".pdf,.html,.htm,.md,.txt,application/pdf,text/html,text/markdown,text/plain" style="padding-top:12px"></label>
+    <label class="field"><span>Title</span><input class="inp" id="upTitle" maxlength="200" placeholder="As the page calls itself"></label>
+    <label class="field"><span>Publisher</span><input class="inp" id="upPub" maxlength="80" placeholder="HDB, CPF Board, MND…"></label>
+    <label class="field"><span>Link to the official page</span><input class="inp" id="upUrl" type="url" maxlength="500" placeholder="https://"></label>
+    <label class="field"><span>Adds a new document, or replaces one</span><span class="lselw"><select class="inp" id="upRep"><option value="">Add as a new document</option></select><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></label>
+    <button type="button" class="btn primary" id="upGo">Upload</button>
+    <p class="small" id="upMsg" role="status"></p>
+    <h3 style="margin:8px 0 0">Documents Ask searches <span id="upN"></span></h3><ul class="doclist" id="upList"><li class="small">Loading…</li></ul></div>`, ()=>{
+    const msg=$('#upMsg'), go=$('#upGo');
+    const list=()=>RW.send('docs').then(r=>{
+      if(!r||!r.ok){$('#upList').innerHTML=`<li class="small">${esc((r&&r.error)||'Could not load the list.')}</li>`; return;}
+      $('#upN').textContent=`(${r.docs.length})`;
+      $('#upList').innerHTML=r.docs.map(d=>`<li><b>${esc(d.title)}</b> <span class="small">${esc(d.publisher)}${d.retrieved?' · '+esc(d.retrieved):''}</span></li>`).join('');
+      $('#upRep').innerHTML='<option value="">Add as a new document</option>'+r.docs.map(d=>`<option value="${esc(d.slug)}">Replace: ${esc(d.title)}</option>`).join('');
+    }).catch(()=>{$('#upList').innerHTML='<li class="small">Runway did not respond.</li>';});
+    list();
+    $('#upFile').onchange=()=>{const f=$('#upFile').files[0]; if(f&&!$('#upTitle').value) $('#upTitle').value=f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' ');};
+    go.onclick=()=>{
+      const f=$('#upFile').files[0];
+      if(!f){msg.textContent='Choose a file first.'; $('#upFile').focus(); return;}
+      if(f.size>6*1024*1024){msg.textContent='That file is over 6 MB.'; return;}
+      go.disabled=true; msg.textContent='Uploading and reading the file…';
+      const rd=new FileReader();
+      rd.onerror=()=>{msg.textContent='Your browser could not read that file.'; go.disabled=false;};
+      rd.onload=()=>RW.send('upload_doc',{name:f.name, data:String(rd.result).split(',')[1]||'', title:$('#upTitle').value.trim(),
+          publisher:$('#upPub').value.trim(), url:$('#upUrl').value.trim(), replace:$('#upRep').value}).then(r=>{
+        RW.send('noop').catch(()=>{});  // Streamlit keeps the last message sent: don't keep the whole file in it
+        go.disabled=false;
+        if(!r||!r.ok){msg.textContent=(r&&r.error)||'Not uploaded. Try again.'; return;}
+        msg.textContent=`${r.replaced?'Replaced':'Added'}: ${r.words.toLocaleString('en-SG')} words. Ask Runway searches it from the next question. `
+          +(r.saved==='github'?'Kept in GitHub.':(r.warn||'No GitHub token is set, so it lasts until the app restarts.'));
+        $('#upFile').value=''; ['upTitle','upPub','upUrl'].forEach(id=>$('#'+id).value=''); list();
+      }).catch(()=>{msg.textContent='Runway did not respond. The file may be too big; try a smaller one.'; go.disabled=false;});
+      rd.readAsDataURL(f);
+    };
+  });
+}
 function sourcesHtml(){
   // caption: file title · author (may hold " · ") · licence · Wikimedia Commons; the licences need the author and licence
   const credits = TOWNS.filter(x=>PHOTOS[x.id]).map(x=>{const p=PHOTOS[x.id], c=p.credit.split(' · '), by=c.slice(1,-2).join(' · ').replace(/\.$/,'');  // "Slivester." reads "Slivester"
@@ -3301,7 +3452,8 @@ function faqHtml(){
     <p id="faqN" class="small" role="status"></p></div>
   <div class="empty" id="faqNone" hidden><p>No questions match.</p><button type="button" class="btn primary" id="faqAsk">Ask Runway instead</button></div>
   ${FAQ.map((x,i)=>`<section aria-labelledby="faq${i}" data-faq="${i}"><h2 id="faq${i}" tabindex="-1">${esc(x.q)}</h2><p>${esc(x.a)}</p>
-    <p class="small">Source: <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.publisher)} · ${esc(x.title)}${NEWTAB}</a></p></section>`).join('')}
+    ${x.url?`<p class="small">Source: <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.publisher)} · ${esc(x.title)}${NEWTAB}</a></p>`
+      :x.title?`<p class="small">Source: ${esc(x.publisher)} · ${esc(x.title)}</p>`:''}</section>`).join('')}
   <p class="small">Runway is a learning project, not financial advice. Confirm your position with CPF Board and your HDB eligibility letter.</p></div>`;
 }
 function timelineHtml(){
