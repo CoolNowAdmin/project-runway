@@ -62,13 +62,7 @@ def llm(code: float) -> LLM:
 
 @st.cache_resource(show_spinner=False, max_entries=1)
 def retriever(code: float) -> Retriever:
-    chunks, bot = load_chunks(), llm(code)
-    if bot.available:
-        try:
-            return Retriever(chunks, embed=bot.embed)
-        except Exception as exc:  # embeddings are an enhancement; keyword search still works
-            print(f"[runway] embeddings failed, using keyword search: {type(exc).__name__}: {exc}")
-    return Retriever(chunks)
+    return Retriever(load_chunks())
 
 
 def switch_page(page) -> None:

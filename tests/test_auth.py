@@ -43,12 +43,12 @@ def test_seed_generates_accounts_and_keeps_other_secrets(tmp_path, monkeypatch):
     monkeypatch.delenv("RUNWAY_DEMO_USERS", raising=False)
     seed = load_seed(tmp_path, monkeypatch)
     seed.SECRETS_FILE.parent.mkdir()
-    seed.SECRETS_FILE.write_text('OPENAI_API_KEY = "sk-test"\n')
+    seed.SECRETS_FILE.write_text('ANTHROPIC_API_KEY = "sk-test"\n')
     seed.main()
     accounts = tomllib.loads(seed.ACCOUNTS_FILE.read_text())["accounts"]
     secrets = tomllib.loads(seed.SECRETS_FILE.read_text())
     assert set(accounts) == {"reviewer"}
-    assert secrets["OPENAI_API_KEY"] == "sk-test"
+    assert secrets["ANTHROPIC_API_KEY"] == "sk-test"
     for name, pw in accounts.items():
         assert verify_password(pw, secrets["auth"]["users"][name])
         assert pw not in seed.SECRETS_FILE.read_text()

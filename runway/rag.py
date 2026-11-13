@@ -1,15 +1,13 @@
 """Retrieval over the fixed library of official CPF, HDB and MND documents.
 
-Hybrid search: BM25 keyword scores always; OpenAI embeddings when an API key is
-configured. The two rankings are merged with reciprocal rank fusion, so exact
-terms ("Valuation Limit", "HFE") and paraphrases ("my partner is younger") both
-find the right passage.
+Keyword search (BM25) with a few everyday synonyms, so exact terms ("Valuation Limit",
+"HFE") and common paraphrases ("deposit") both find the right passage. A question in
+another language is put into English first (runway.llm.LLM.search_query).
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,9 +17,7 @@ from rank_bm25 import BM25Okapi
 CORPUS_DIR = Path(__file__).resolve().parent.parent / "data" / "corpus"
 CHUNK_WORDS = 160
 OVERLAP_WORDS = 40
-RRF_K = 60
 
-Embedder = Callable[[list[str]], np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -111,35 +107,15 @@ def expand_query(query: str) -> str:
 
 
 class Retriever:
-    def __init__(self, chunks: list[Chunk], embed: Embedder | None = None):
-        self.chunks = chunks
-        self.embed = embed
-        self.embed_error: str | None = None
-        self.bm25 = BM25Okapi([tokenize(f"{c.title} {c.heading} {c.text}") for c in chunks])
-        self.vectors = None
-        if embed is not None:
-            vecs = embed([f"{c.title}. {c.heading}. {c.text}" for c in chunks])
-            self.vectors = vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+    mode = "keyword (BM25)"
 
-    @property
-    def mode(self) -> str:
-        return "hybrid (BM25 + embeddings)" if self.vectors is not None else "keyword (BM25)"
+    def __init__(self, chunks: list[Chunk]):
+        self.chunks = chunks
+        self.bm25 = BM25Okapi([tokenize(f"{c.title} {c.heading} {c.text}") for c in chunks])
 
     def search(self, query: str, k: int = 5) -> list[Chunk]:
-        rankings = [np.argsort(-self.bm25.get_scores(tokenize(expand_query(query))))]
-        if self.vectors is not None:
-            try:
-                q = self.embed([query])[0]
-            except Exception as exc:  # API down or over quota: the keyword ranking alone still answers
-                self.embed_error = f"{type(exc).__name__}: {exc}"
-            else:
-                rankings.append(np.argsort(-(self.vectors @ (q / np.linalg.norm(q)))))
-        fused: dict[int, float] = {}
-        for ranking in rankings:
-            for rank, idx in enumerate(ranking[:50]):
-                fused[int(idx)] = fused.get(int(idx), 0.0) + 1.0 / (RRF_K + rank + 1)
-        best = sorted(fused, key=fused.get, reverse=True)
-        return [self.chunks[i] for i in best[:k]]
+        scores = self.bm25.get_scores(tokenize(expand_query(query)))
+        return [self.chunks[int(i)] for i in np.argsort(-scores)[:k]]
 
 
 def format_context(chunks: list[Chunk]) -> str:

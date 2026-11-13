@@ -4,7 +4,7 @@ Checks:
 - retrieval: is an expected official document among the top 5 passages?
 - figure: does the CPF calculator match the official worked example?
 - decline: are advice, prompt-injection and off-topic questions declined?
-- llm (only when OPENAI_API_KEY is set): does the answer cite a passage and contain the expected words?
+- llm (only when ANTHROPIC_API_KEY is set): does the answer cite a passage and contain the expected words?
 
 Usage:  python eval/run_eval.py
 """
@@ -28,7 +28,7 @@ from runway.rag import Retriever, load_chunks  # noqa: E402
 def main() -> None:
     cases = json.loads((ROOT / "eval" / "questions.json").read_text())
     bot = LLM()
-    index = Retriever(load_chunks(), embed=bot.embed if bot.available else None)
+    index = Retriever(load_chunks())
     rows, s = [], dict.fromkeys(
         ["retrieval_hits", "retrieval_total", "figure_pass", "figure_total", "decline_pass", "decline_total",
          "llm_pass", "llm_total"], 0)

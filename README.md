@@ -35,13 +35,18 @@ the calculator didn't produce is replaced by a plain template.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # then add your OPENAI_API_KEY
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # then add your ANTHROPIC_API_KEY
 python scripts/seed_users.py                                  # creates demo logins (see below)
 streamlit run app.py
 ```
 
-Without an `OPENAI_API_KEY` the app still works: calculations, charts and keyword search run as normal, and Ask
+Without an `ANTHROPIC_API_KEY` the app still works: calculations, charts and keyword search run as normal, and Ask
 Runway shows the matching official passages instead of an AI answer.
+
+Ask Runway uses Claude through the Anthropic API: `claude-opus-5-5` by default, or the model named in
+`ANTHROPIC_MODEL` (for example `claude-haiku-5-5`, which costs far less per answer). The key comes from
+[console.anthropic.com](https://console.anthropic.com); a Claude subscription does not include one. Documents are found by
+keyword search, and a question in Chinese, Malay or Tamil is put into English by the model first.
 
 ## Logins
 
@@ -60,7 +65,8 @@ file's contents into **Streamlit Community Cloud > App settings > Secrets**. Use
 1. Push this repo to GitHub.
 2. At [share.streamlit.io](https://share.streamlit.io), create an app from the repo, branch `main`, main file
    `app.py`, Python 3.12, and set the custom subdomain `runway-hdb` (app URL: https://runway-hdb.streamlit.app).
-3. Paste the contents of your local `.streamlit/secrets.toml` (OpenAI key and `[auth.users]` hashes) into the app's
+3. Paste the contents of your local `.streamlit/secrets.toml` (the `ANTHROPIC_API_KEY` line first, then the `[auth.users]` hashes: a key placed below `[auth.users]` is read as a
+   username and the AI stays off) into the app's
    Secrets.
 
 ## Project layout
@@ -74,8 +80,8 @@ runway/bridge.py       sign-in, ask, why, summary, trends, towns, town_photo and
 runway/cpf_rules.py    age-95 rule, CPF share, HDB loan limit, loan tenure (Python reference)
 runway/costs.py        stamp duty, HDB fees, grants, HDB and bank loan under the income cap
 runway/price_check.py  one flat's price per sqm against similar recent sales
-runway/rag.py          chunking, BM25 + embedding search, reciprocal rank fusion
-runway/llm.py          prompts, question screening, number guard, OpenAI calls
+runway/rag.py          chunking and BM25 keyword search
+runway/llm.py          prompts, question screening, number guard, Claude calls (Anthropic API)
 runway/auth.py         password hashing and checks
 runway/game_data.py    map data and town photos; town list and one photo at a time for the home page
 data/game/             towns, Jul-Sep 2026 sales, blocks, roads, MRT, amenities

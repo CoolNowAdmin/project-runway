@@ -1926,7 +1926,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     ['ask', 'Ask', 'question chat ai documents upload voice'], ['more', 'More', 'menu settings'],
     ['details', 'Your details', 'youngest buyer age average cpf ordinary account reset'], ['text-size', 'Text size', 'large font bigger'],
     ['about', 'About Us', 'team notice disclaimer'], ['how-it-works', 'How it works', 'methodology formula flowchart tests'],
-    ['sources', 'Sources and credits', 'data licences photos credits'], ['privacy', 'Privacy Policy', 'personal data cookies storage openai'],
+    ['sources', 'Sources and credits', 'data licences photos credits'], ['privacy', 'Privacy Policy', 'personal data cookies storage anthropic claude'],
     ['terms', 'Terms', 'terms of use licence warranty advice'], ['faq', 'FAQ', 'questions answers'],
     ['case-study', 'Case study', 'example toa payoh yishun lease price'],
     ['timeline', 'Buying timeline', 'steps process hfe letter option to purchase otp request for value resale application completion deadline']];
@@ -3297,7 +3297,7 @@ function methodHtml(){
   <h2>Requirements checklist</h2>
   <div class="scroll"><table class="tbl"><thead><tr><th>Requirement</th><th>Where</th></tr></thead><tbody>${req.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table></div>
   <h2>Data flow</h2>
-  <ul><li><b>Offline:</b> pandas combines HDB's 5 resale files (986,090 sales), works out each town's lease effect from Jan 2024 – Sep 2026 sales, and geocodes every block with OneMap addresses.</li><li><b>Map:</b> town outlines, roads, MRT and the ${SPAN} sales are drawn with Leaflet. The calculator runs in the app for your age.</li><li><b>Ask:</b> 32 official documents are split into 349 passages. Keyword (BM25) and OpenAI embedding search are merged, the top 5 passages go to the AI with strict rules, and the answer shows its sources.</li></ul>
+  <ul><li><b>Offline:</b> pandas combines HDB's 5 resale files (986,090 sales), works out each town's lease effect from Jan 2024 – Sep 2026 sales, and geocodes every block with OneMap addresses.</li><li><b>Map:</b> town outlines, roads, MRT and the ${SPAN} sales are drawn with Leaflet. The calculator runs in the app for your age.</li><li><b>Ask:</b> 32 official documents are split into 349 passages. Keyword (BM25) search picks the top 5 passages (a question in another language is put into English first), they go to the AI, Claude, with strict rules, and the answer shows its sources.</li></ul>
   <h2>The rule</h2>
   <div class="scroll"><table class="tbl"><tbody>
     <tr><td>Lease needed</td><td>95 − youngest buyer's age</td></tr>
@@ -3347,7 +3347,7 @@ function privacyHtml(){
   <h2>Questions</h2><ul>
     <li>A question with an NRIC number, a Singapore phone number or an email address stays in your browser, and Runway asks you to remove it.</li>
     <li>Others go to Runway's server with your last few chat turns, the answer language you chose and, once you set it, the youngest buyer's age. The server checks again and, without the AI, declines personal details, attempts to change its rules, requests for advice and off-topic questions.</li>
-    <li>With the AI on, OpenAI gets your question, up to six recent turns, the age if set and the matching official passages, to write the answer, and your question with your previous one, to search the documents. With it off or busy, nothing goes to OpenAI and you see the official pages.</li>
+    <li>With the AI on, Anthropic (the maker of Claude) gets your question, up to six recent turns, the age if set and the matching official passages, to write the answer. A question that is not in English also goes there, with your previous one, to be put into English for the document search. With the AI off or busy, nothing goes to Anthropic and you see the official pages.</li>
     <li>"Why?" has the AI explain a flat's calculator figures (age, lease, percentages, the town's lease effect), with no chat history. "Sum up this chat" sends the chat so far; the AI reads the last 12 turns.</li>
     <li>Voice input uses your browser's speech recognition (some browsers, such as Chrome, send the audio to their own speech service); Runway gets only the text. Read aloud uses your device's voices.</li></ul>
   <h2>Answer feedback</h2><ul>
@@ -3371,7 +3371,7 @@ function privacyHtml(){
     <li>Runway's code writes to the server log when something fails (the kind of request and the error) and when you vote on an answer (the line described under Answer feedback). It does not write your other questions or your files to the log.</li></ul>
   <h2>Cookies and browser storage</h2><ul>
     <li>Runway's own code sets no cookies and keeps exactly one thing in your browser's local storage: your Dark mode choice, under the name runway-theme, which never leaves your device. Your details, shortlist and chat live only in the open page and are lost on reload, so there is no cookie banner.</li>
-    <li>The optional household income, grant details and bank rate you enter are used only for the sums in your browser. They are never sent to Runway's server or to OpenAI, not even with a question.</li>
+    <li>The optional household income, grant details and bank rate you enter are used only for the sums in your browser. They are never sent to Runway's server or to Anthropic, not even with a question.</li>
     <li>Streamlit, the framework Runway runs on, may set its own cookie to protect requests to the server. Its usage statistics are switched off in Runway's settings.</li></ul>
   <h2>Other services</h2><ul>
     <li>Google Fonts (fonts.googleapis.com, fonts.gstatic.com), for the RUNWAY wordmark on every page, and cdnjs.cloudflare.com, for the map library (Leaflet) when you first open the map and PDF.js when you upload a PDF.</li>

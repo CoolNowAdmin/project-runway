@@ -15,9 +15,7 @@ import unicodedata
 from collections import deque
 from dataclasses import dataclass
 
-import numpy as np
-
-from runway.config import DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL, get_setting
+from runway.config import DEFAULT_CHAT_MODEL, get_setting
 from runway.rag import Chunk, format_context
 
 DECLINE_ADVICE = (
@@ -111,6 +109,15 @@ def language_rule(lang: str) -> str:
             "the English source, in Arabic numerals 0-9, never in words or other numerals. Keep the [1] citations.")
 
 
+# Claude Opus 5.5 always thinks before answering, and the thinking counts towards max_tokens, so the cap is roomy and
+# the prompts keep the answers short. Low effort: the answers are short and grounded in passages, and a person is waiting.
+MAX_TOKENS = 16000
+EFFORT = "low"
+FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+SEARCH_SYSTEM = """Put the user's question about buying a Singapore HDB flat into plain English, keeping terms such as
+CPF, HDB, lease, loan and grant. Reply with the English question only, with no answer and no comment."""
+
 SUMMARY_SYSTEM = """Sum up this chat about HDB resale rules in 3 to 5 short bullet points, in plain English.
 Use only what the chat says. Do not add new figures or advice."""
 
@@ -133,7 +140,7 @@ class Answer:
 INVENTED_FIGURE = "answer had a figure not in the passages or question"
 AI_BUSY = "hourly AI limit reached"
 
-# Guests can ask without signing in, so cap OpenAI calls (chat and embeddings) for the whole process.
+# Guests can ask without signing in, so cap AI calls for the whole process.
 AI_CALLS_PER_HOUR = 300
 _calls: deque[float] = deque()
 _calls_lock = threading.Lock()
@@ -190,39 +197,51 @@ def invented_numbers(explanation: str, facts_text: str, allowed_extra: set[str] 
 
 
 class LLM:
-    """Thin wrapper around the OpenAI client; `available` is False without an API key."""
+    """Thin wrapper around the Anthropic client (Claude); `available` is False without an API key."""
 
     def __init__(self) -> None:
-        self.api_key = get_setting("OPENAI_API_KEY")
-        self.chat_model = get_setting("OPENAI_MODEL", DEFAULT_CHAT_MODEL)
-        self.embed_model = get_setting("OPENAI_EMBED_MODEL", DEFAULT_EMBED_MODEL)
+        self.api_key = get_setting("ANTHROPIC_API_KEY")
+        self.chat_model = get_setting("ANTHROPIC_MODEL", DEFAULT_CHAT_MODEL)
         self._client = None
         if self.api_key:
-            from openai import OpenAI
+            from anthropic import Anthropic
 
-            self._client = OpenAI(api_key=self.api_key, timeout=30)
+            # One retry, 40 s each: the page stops waiting after 90 s.
+            self._client = Anthropic(api_key=self.api_key, timeout=40, max_retries=1)
 
     @property
     def available(self) -> bool:
         return self._client is not None
 
-    def embed(self, texts: list[str]) -> np.ndarray:
-        vectors = []
-        for start in range(0, len(texts), 256):
-            spend_ai_call()
-            resp = self._client.embeddings.create(model=self.embed_model, input=texts[start : start + 256])
-            vectors.extend(d.embedding for d in resp.data)
-        return np.array(vectors, dtype=np.float32)
-
-    def _chat(self, system: str, messages: list[dict], temperature: float = 0.1) -> str:
+    def _chat(self, system: str, messages: list[dict]) -> str:
         spend_ai_call()
-        resp = self._client.chat.completions.create(
+        messages = [m for m in messages if m["content"].strip()]  # the API rejects empty text
+        while messages and messages[0]["role"] != "user":  # and needs a user turn first
+            messages = messages[1:]
+        resp = self._client.beta.messages.create(
             model=self.chat_model,
-            messages=[{"role": "system", "content": system}, *messages],
-            temperature=temperature,
-            max_tokens=600,
+            max_tokens=MAX_TOKENS,
+            system=system,
+            messages=messages,
+            output_config={"effort": EFFORT},
+            betas=[FALLBACK_BETA],
+            fallbacks="default",  # a request the safety classifiers decline is re-run on a fallback model
         )
-        return resp.choices[0].message.content.strip()
+        text = "".join(b.text for b in resp.content if b.type == "text").strip()
+        if resp.stop_reason == "refusal" or not text:  # callers fall back to the passages or the template
+            raise RuntimeError(f"no answer from the model (stop_reason: {resp.stop_reason})")
+        return text
+
+    def search_query(self, text: str, lang: str = "en") -> str:
+        """The document search matches English words, so a question in another language is put into English first."""
+        foreign = language(lang) != "en" or any(c.isalpha() and not c.isascii() for c in text)
+        if not (foreign and self.available and text.strip()):
+            return text
+        try:
+            return self._chat(SEARCH_SYSTEM, [{"role": "user", "content": text}])
+        except Exception as exc:  # budget, network, a decline: search with the words as typed
+            print(f"[runway] search translation failed, using the question as typed: {type(exc).__name__}: {exc}")
+            return text
 
     def answer(
         self, question: str, sources: list[Chunk], history: list[dict] | None = None, situation: str = "", lang: str = "en"
@@ -254,7 +273,7 @@ class LLM:
             return template_explanation(facts), False
         prompt = f"FACTS:\n{facts_text}\n\nRULE PASSAGES:\n{format_context(sources)}"
         try:
-            text = self._chat(EXPLAIN_SYSTEM + language_rule(lang), [{"role": "user", "content": prompt}], temperature=0.0)
+            text = self._chat(EXPLAIN_SYSTEM + language_rule(lang), [{"role": "user", "content": prompt}])
         except Exception as exc:
             print(f"[runway] explanation call failed, using template: {type(exc).__name__}: {exc}")
             return template_explanation(facts), False
@@ -271,7 +290,7 @@ class LLM:
         if self.available:
             transcript = "\n".join(f"{t['role'].upper()}: {t['content']}" for t in history[-12:])
             try:
-                return self._chat(SUMMARY_SYSTEM, [{"role": "user", "content": transcript}], temperature=0.0)
+                return self._chat(SUMMARY_SYSTEM, [{"role": "user", "content": transcript}])
             except Exception as exc:
                 print(f"[runway] summary call failed, listing questions: {type(exc).__name__}: {exc}")
         return "You asked about:\n" + "\n".join(f"- {q}" for q in questions)

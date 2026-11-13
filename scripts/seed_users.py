@@ -7,7 +7,7 @@ Where the accounts come from (first match wins):
      demo_accounts.local.toml so you can hand them out.
 
 Output: `.streamlit/secrets.toml` (gitignored) gets an [auth.users] table of
-salted PBKDF2 hashes. Other keys already in that file (e.g. OPENAI_API_KEY)
+salted PBKDF2 hashes. Other keys already in that file (e.g. ANTHROPIC_API_KEY)
 are kept. Paste the file's contents into Streamlit Cloud > App settings > Secrets.
 
 Usage:

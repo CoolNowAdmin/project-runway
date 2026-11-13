@@ -21,16 +21,16 @@ FACTS = {"Youngest buyer age": "28", "Remaining lease (years)": "58", "Youngest 
 
 
 def recording_llm(reply: str) -> tuple[LLM, list]:
-    """A fake model that records the messages it was sent (no API call)."""
+    """A fake model that records what it was sent, system prompt first (no API call)."""
     calls = []
     bot = LLM.__new__(LLM)
     bot.chat_model = "test"
 
     def create(**kw):
-        calls.append(kw["messages"])
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=reply))])
+        calls.append([{"role": "system", "content": kw["system"]}, *kw["messages"]])
+        return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text=reply)])
 
-    bot._client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    bot._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
     return bot, calls
 
 
@@ -89,7 +89,9 @@ def test_bridge_passes_only_allowed_languages_to_the_model(monkeypatch):
                        {}, {}, bot, index)
         seen.append(reply["lang"])
     assert seen == ["ms", "en", "en"]
-    assert "Malay" in calls[0][0]["content"] and "Write your answer" not in calls[1][0]["content"] + calls[2][0]["content"]
+    # Malay: one call puts the question into English for the search, then the answer; English needs only the answer
+    assert len(calls) == 4 and calls[0][0]["content"] == llm_mod.SEARCH_SYSTEM
+    assert "Malay" in calls[1][0]["content"] and "Write your answer" not in calls[2][0]["content"] + calls[3][0]["content"]
 
 
 def test_number_guard_still_catches_an_invented_figure_in_a_chinese_answer():

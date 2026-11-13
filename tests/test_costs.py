@@ -110,4 +110,4 @@ def test_upfront_details_stay_in_the_browser():
     assert sends and not any(k in s for s in sends for k in ("S.inc", "S.hh", "S.first", "S.cit", "S.par", "bankRate"))
     facts = GAME[GAME.index("function flatFacts("):GAME.index("async function ask(")]
     assert "S.inc" not in facts and "loanOptions" not in facts and "grants(" not in facts
-    assert "never sent to Runway's server or to OpenAI" in GAME
+    assert "never sent to Runway's server or to Anthropic" in GAME

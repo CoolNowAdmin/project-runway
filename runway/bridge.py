@@ -130,7 +130,7 @@ def handle(msg: dict, state: MutableMapping, users: dict[str, str], bot: LLM, in
         history = clean_history(payload.get("history"), 6)
         previous = next((h["content"] for h in reversed(history) if h["role"] == "user"), "")
         # A question that will be declined must not spend an AI call on the search (the hourly budget is shared).
-        sources = [] if screen_question(question) else index.search(f"{previous} {question}", k=5)
+        sources = [] if screen_question(question) else index.search(bot.search_query(f"{previous} {question}", lang), k=5)
         answer = bot.answer(question, sources, history=history, situation=situation_from(payload.get("age")), lang=lang)
         offline = bool(answer.error) or (not bot.available and not answer.blocked)
         why = {INVENTED_FIGURE: "used a figure not in the documents", AI_BUSY: "has reached its limit for this hour",

@@ -5,8 +5,7 @@ from __future__ import annotations
 import os
 
 RULES_LAST_CHECKED = "16 Oct 2026"
-DEFAULT_CHAT_MODEL = "gpt-4.1-mini"
-DEFAULT_EMBED_MODEL = "text-embedding-3-small"
+DEFAULT_CHAT_MODEL = "claude-opus-5-5"  # set ANTHROPIC_MODEL (e.g. "claude-haiku-5-5") to change it
 
 
 def get_setting(name: str, default: str | None = None) -> str | None:

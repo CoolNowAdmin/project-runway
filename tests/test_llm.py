@@ -85,8 +85,8 @@ def test_template_uses_only_fact_numbers():
 def fake_llm(reply: str) -> LLM:
     bot = LLM.__new__(LLM)
     bot.chat_model = "test"
-    create = lambda **_: SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=reply))])  # noqa: E731
-    bot._client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    create = lambda **_: SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text=reply)])  # noqa: E731
+    bot._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
     return bot
 
 
@@ -126,7 +126,7 @@ def test_situation_does_not_let_off_topic_questions_through():
 
 
 def test_offline_mode_without_key(monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setattr(llm_mod, "get_setting", lambda name, default=None: default)
     bot = LLM()
     assert not bot.available
@@ -141,7 +141,7 @@ def broken_llm() -> LLM:
     def create(**_):
         raise TimeoutError("upstream timed out")
 
-    bot._client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    bot._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
     return bot
 
 
@@ -200,3 +200,47 @@ def test_template_says_1_year_not_1_years():
     text = template_explanation({**FACTS, "Years short of age 95": "1"})
     assert "1 year before age 95" in text and "1 years" not in text
     assert "9 years before age 95" in template_explanation(FACTS)
+
+
+def test_chat_sends_a_valid_claude_request_and_reads_text_blocks():
+    """The Messages API needs a user turn first and no empty text; thinking blocks are skipped when reading the reply."""
+    sent = {}
+    bot = LLM.__new__(LLM)
+    bot.chat_model = "claude-opus-5-5"
+
+    def create(**kw):
+        sent.update(kw)
+        return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="thinking", thinking=""),
+                                                                SimpleNamespace(type="text", text=" CPF is pro-rated [1]. ")])
+
+    bot._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
+    history = [{"role": "assistant", "content": "earlier answer"}, {"role": "user", "content": " "}, {"role": "user", "content": "Why?"}]
+    assert bot._chat("SYSTEM", history) == "CPF is pro-rated [1]."
+    assert sent["system"] == "SYSTEM" and sent["messages"] == [{"role": "user", "content": "Why?"}]
+    assert sent["model"] == "claude-opus-5-5" and sent["output_config"] == {"effort": "low"}
+    assert sent["fallbacks"] == "default" and sent["betas"] == ["server-side-fallback-2026-07-01"]
+    assert "temperature" not in sent and "thinking" not in sent  # both are rejected by Claude Opus 5.5
+
+
+@pytest.mark.parametrize("reply", [
+    SimpleNamespace(stop_reason="refusal", content=[]),
+    SimpleNamespace(stop_reason="max_tokens", content=[SimpleNamespace(type="thinking", thinking="")]),
+])
+def test_a_decline_or_an_empty_reply_falls_back_to_the_passages(reply):
+    bot = LLM.__new__(LLM)
+    bot.chat_model = "test"
+    bot._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=lambda **_: reply)))
+    result = bot.answer("What is the HDB loan limit?", [SOURCE])
+    assert result.error and result.sources == [SOURCE] and result.text == llm_mod.offline_answer([SOURCE])
+    assert bot.explain(FACTS, [SOURCE]) == (template_explanation(FACTS), False)
+
+
+def test_search_query_translates_only_other_languages():
+    bot = fake_llm("How much CPF can I use?")
+    assert bot.search_query("How much CPF can I use?") == "How much CPF can I use?"  # English: no AI call needed
+    assert bot.search_query("公积金能用多少") == "How much CPF can I use?"
+    assert bot.search_query("Berapa banyak CPF boleh saya guna?", "ms") == "How much CPF can I use?"
+    assert broken_llm().search_query("公积金能用多少", "zh") == "公积金能用多少"  # the AI failed: search as typed
+    offline = LLM.__new__(LLM)
+    offline._client = None
+    assert offline.search_query("公积金能用多少", "zh") == "公积金能用多少"
