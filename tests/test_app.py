@@ -321,18 +321,20 @@ def test_landing_stats_match_the_dataset():
     meta = json.loads((ROOT / "data" / "dataset_meta.json").read_text())
     assert f"<b>{meta['rows']:,}</b><span>Resale records</span>" in GAME
     assert f"<b>{meta['first_month'][:4]}–{meta['last_month'][:4]}</b>" in GAME
-    assert f"{meta['rows']:,} sales from {meta['first_month'][:4]} to Sep {meta['last_month'][:4]}" in GAME
-    assert meta["last_month"][5:] == "09"
+    mon = "JanFebMarAprMayJunJulAugSepOctNovDec"[3 * int(meta["last_month"][5:]) - 3:][:3]  # scripts/refresh_data.py moves it
+    assert f"{meta['rows']:,} sales from {meta['first_month'][:4]} to {mon} {meta['last_month'][:4]}" in GAME
 
 
 def test_town_lease_effect_window_is_jan_2024_to_the_last_month():
     """map.json's per-town lease effect (pct) came from the design hand-off without its script. Refitting it shows the
-    window the methodology states: same town, same flat type, same month, sales from Jan 2024 to the latest month."""
+    window the methodology states: same town, same flat type, same month, sales from Jan 2024 to the map's last month
+    (map.json is not refreshed with resale.parquet, so the window ends where the map's own sales end)."""
     import numpy as np
     import pandas as pd
 
     df = pd.read_parquet(ROOT / "data" / "resale.parquet", columns=["month", "town", "flat_type", "remaining_lease", "price_psm"])
-    df = df[df["month"] >= pd.Timestamp("2024-01-01")].copy()
+    end = pd.Timestamp(max(x[0] for r in MAP["recent"] for x in r["x"]))
+    df = df[(df["month"] >= pd.Timestamp("2024-01-01")) & (df["month"] <= end)].copy()
     df["T"] = df["town"].astype(str).str.upper().str.replace(" / ", "/")
     df["y"], df["x"] = np.log(df["price_psm"].astype(float)), df["remaining_lease"].astype(float)
     g = df.groupby(["T", "month", df["flat_type"].astype(str)])

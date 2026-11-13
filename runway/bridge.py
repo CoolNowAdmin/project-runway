@@ -24,7 +24,7 @@ from runway.rag import Chunk, Retriever
 PAGES = {"": "Runway — HDB CPF age-95 checker", "map": "Map", "shortlist": "Shortlist", "trends": "Trends", "ask": "Ask",
          "more": "More", "details": "Your details", "text-size": "Text size", "about": "About Us",
          "how-it-works": "How it works", "sources": "Sources and credits", "privacy": "Privacy Policy", "terms": "Terms",
-         "faq": "FAQ", "case-study": "Case study"}
+         "faq": "FAQ", "case-study": "Case study", "timeline": "Buying timeline"}
 MAX_ATTEMPTS = 5
 LOCKOUT_SECONDS = 60
 # username -> (failed attempts, locked until). Module-level, so a page reload (a new session) can't reset it.

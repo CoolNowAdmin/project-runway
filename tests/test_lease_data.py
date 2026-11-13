@@ -41,9 +41,10 @@ def test_degenerate_input_returns_none():
 
 
 def test_real_data_reproduces_proposal_table():
-    """Proposal Table 1: 4-room flats sold from 2024. Data now runs to Sep 2026, so allow 0.05pp drift."""
+    """Proposal Table 1: 4-room flats sold from 2024. Pinned to sales up to Sep 2026, so allow 0.05pp drift."""
     df = load_transactions()
-    assert load_meta()["rows"] == 986_090
+    df = df[df["month"] <= pd.Timestamp("2026-09-01")]  # the monthly refresh adds later months
+    assert load_meta()["rows"] >= 986_090
     got = {p.town: p.pct_per_year for p in premiums_by_town(df, "4 ROOM", "2024-01-01")}
     expected = {"Yishun": 0.51, "Hougang": 0.65, "Tampines": 0.92, "Queenstown": 1.40,
                 "Ang Mo Kio": 1.49, "Toa Payoh": 1.54, "Clementi": 1.62}

@@ -1,0 +1,68 @@
+# Monthly: download HDB resale prices from data.gov.sg, rebuild the dataset, run the tests, and open a pull request.
+# It never pushes to main (a push to main redeploys the live app); a person merges the pull request.
+# Needs Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+name: Data refresh
+
+on:
+  schedule:
+    - cron: "0 3 3 * *"  # 03:00 UTC on the 3rd of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: data-refresh
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt pytest
+
+      - name: Download and rebuild
+        run: python scripts/refresh_data.py "$RUNNER_TEMP/resale"
+
+      - name: Check for new data
+        id: check
+        # dataset_meta.json holds the row count and the months; Parquet bytes can differ between writes of the same data.
+        run: |
+          if git diff --quiet -- data/dataset_meta.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new data."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff -- data/dataset_meta.json
+          fi
+
+      - name: Test
+        if: steps.check.outputs.changed == 'true'
+        run: python -m pytest -q
+
+      - name: Open a pull request
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          month=$(python -c "import json; print(json.load(open('data/dataset_meta.json'))['last_month'])")
+          branch="data-refresh/$month"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add data/resale.parquet data/dataset_meta.json runway_game/index.html
+          git commit -m "Data: HDB resale prices to $month"
+          git push --force origin "HEAD:refs/heads/$branch"
+          if [ -z "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head "$branch" --title "Data: HDB resale prices to $month" --body "Monthly refresh from data.gov.sg by the Data refresh workflow. Tests passed on this branch.
+
+          Updated: data/resale.parquet, data/dataset_meta.json and the dataset figures in runway_game/index.html (Trends follows the new months).
+          Not updated: data/game/map.json and features.json (the map keeps its own sales window and town lease effect)."
+          fi

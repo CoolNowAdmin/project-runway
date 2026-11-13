@@ -1093,6 +1093,14 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
 .br>div{display:flex;flex-direction:column}
 .br .bl{font:700 .667rem var(--font-ui);color:var(--ink-2);text-align:center;padding:3px 0}
 
+/* ---- buying timeline ---- */
+.tl{margin:0;padding:0;list-style:none;counter-reset:tl;display:flex;flex-direction:column;gap:10px}
+.tl>li{counter-increment:tl;position:relative;padding:16px 18px 16px 62px;border-radius:16px;background:var(--beige-2);display:flex;flex-direction:column;gap:8px}
+.tl>li::before{content:counter(tl);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:999px;background:var(--green);color:var(--snow);font:700 .833rem/32px var(--font-ui);text-align:center;font-variant-numeric:tabular-nums}
+.doctext .tl h2{margin:0}
+.tl p{margin:0}
+.tl .tl-lease{padding:10px 12px;border-radius:12px;background:var(--beige)}
+
 /* ---- Trends (public price charts) ---- */
 .tr .card{background:var(--snow);box-shadow:var(--shadow-soft);border-radius:var(--radius-card);padding:18px 18px 12px;display:flex;flex-direction:column;gap:10px}
 .tr .card h2{font-size:1.2rem}
@@ -1887,7 +1895,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
      Python checks the same paths (runway/bridge.py PAGES). Value: what RW.enter opens. */
   RW.PATHS = {'': 'home', 'map': 'map', 'shortlist': 'list', 'trends': 'trends', 'ask': 'ask', 'more': 'more',
     'details': 'more details', 'text-size': 'more size', 'about': 'more about', 'how-it-works': 'more method', 'sources': 'more sources',
-    'privacy': 'more privacy', 'terms': 'more terms', 'faq': 'more faq', 'case-study': 'more case'};
+    'privacy': 'more privacy', 'terms': 'more terms', 'faq': 'more faq', 'case-study': 'more case', 'timeline': 'more timeline'};
   RW.go = path => {
     if(!Object.hasOwn(RW.PATHS, path)) return;
     const [target, sub] = RW.PATHS[path].split(' ');
@@ -1926,7 +1934,8 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
     ['about', 'About Us', 'team notice disclaimer'], ['how-it-works', 'How it works', 'methodology formula flowchart tests'],
     ['sources', 'Sources and credits', 'data licences photos credits'], ['privacy', 'Privacy Policy', 'personal data cookies storage openai'],
     ['terms', 'Terms', 'terms of use licence warranty advice'], ['faq', 'FAQ', 'questions answers'],
-    ['case-study', 'Case study', 'example toa payoh yishun lease price']];
+    ['case-study', 'Case study', 'example toa payoh yishun lease price'],
+    ['timeline', 'Buying timeline', 'steps process hfe letter option to purchase otp request for value resale application completion deadline']];
   const q = document.getElementById('navQ'), qr = document.getElementById('navQr'), qn = document.getElementById('navQn');
   function clearSearch(){ q.value = ''; qr.replaceChildren(); qn.textContent = ''; }
   function runSearch(){
@@ -1961,7 +1970,7 @@ table.tbl{border-collapse:collapse;width:100%;font:400 .778rem/1.45 var(--font-u
   });
 
   /* Back to top on the long pages: shows once the open screen (each screen scrolls itself) is well down */
-  const toTop = document.getElementById('toTop'), LONG = new Set(['', 'how-it-works', 'faq', 'sources', 'privacy', 'terms']);
+  const toTop = document.getElementById('toTop'), LONG = new Set(['', 'how-it-works', 'faq', 'sources', 'privacy', 'terms', 'timeline']);
   document.addEventListener('scroll', e => {
     const s = e.target; if(!s.classList || !s.classList.contains('screen')) return;
     toTop.hidden = !(LONG.has(RW.want ?? '') && s.scrollTop > 600);
@@ -2127,6 +2136,19 @@ const FAQ = [
   {"q": "Can I still use CPF for my housing loan after 55?", "a": "Yes. You can keep using your Ordinary Account savings to pay your housing loan after you turn 55. On your 55th birthday a Retirement Account is created and savings up to your Full Retirement Sum move into it from your Special and Ordinary Accounts. Before 55 you can apply to reserve Ordinary Account savings for your loan repayments.", "doc": "cpf-faq-housing-loan-after-55", "title": "Can I use my CPF savings to pay for my housing loan after I turn 55?", "publisher": "CPF Board", "url": "https://www.cpf.gov.sg/service/article/can-i-use-my-cpf-savings-to-pay-for-my-housing-loan-after-i-turn-55"}
 ];
 /* end FAQ */
+// Buying timeline: each step rests on one official document in data/corpus (tests check the metadata and the figures).
+const TIMELINE = [
+  {"t": "Get your HFE letter", "a": "Apply on the HDB Flat Portal with your Singpass. The letter sets out your housing and financing options so you can plan a budget, and you can ask participating banks for an In-Principle Approval at the same time. Applying is free.", "when": "Up to a month once HDB has all your documents, and longer around sales exercises. The letter is valid for 9 months, and it must be valid when you get the Option to Purchase and when you submit the resale application.", "doc": "hdb-hfe-letter", "title": "Application for an HDB Flat Eligibility (HFE) Letter", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/flat-grant-and-loan-eligibility/application-for-an-hdb-flat-eligibility-hfe-letter"},
+  {"t": "Work out your budget", "a": "Plan what you will pay in cash, from CPF and with a loan. Cash costs include the deposit to the sellers ($2 to $5,000), the $120 Request for Value fee, the resale application fee of $80 ($40 for 1- and 2-room flats) and legal fees.", "when": "Before you start looking for a flat.", "lease": "How much CPF you can use depends on whether the flat's remaining lease covers the youngest buyer up to age 95. If it doesn't, CPF use is pro-rated, and an HDB loan limit is pro-rated from 75%.", "doc": "hdb-mode-of-financing-resale", "title": "Mode of Financing for a Resale Flat", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/resale-flats/process-for-buying-a-resale-flat/resale-flat-planning/mode-of-financing"},
+  {"t": "Find a flat", "a": "Search HDB's Resale Flat Listing with filters such as location, flat type, price and remaining lease, and check recent transacted prices nearby before you make an offer. With a valid HFE letter you can contact sellers or their salespersons to arrange viewings.", "lease": "Each listing shows the flat's remaining lease, and HDB Map gives the date its lease started. Check that lease against the youngest buyer's age in Runway's calculator before you agree a price.", "doc": "hdb-finding-a-resale-flat", "title": "Finding a Resale Flat", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/resale-flats/finding-a-resale-flat"},
+  {"t": "Get the Option to Purchase", "a": "Agree the price with the sellers. They grant you the HDB-prescribed Option to Purchase (OTP), and you pay an Option Fee of $1 to $1,000. If you're taking an HDB loan, your HFE letter must show you're eligible for it before the OTP is granted.", "when": "The OTP expires 21 calendar days from the option date, weekends and public holidays included: one granted on 1 April expires on 22 April at 4pm. Until then the sellers can't grant anyone else an OTP.", "doc": "hdb-option-to-purchase", "title": "Option to Purchase When Buying a Resale Flat", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/resale-flats/process-for-buying-a-resale-flat/option-to-purchase"},
+  {"t": "Submit a Request for Value", "a": "If you're using CPF or a loan, confirm how you'll pay in My Flat Dashboard and submit a Request for Value with a scan of page 1 of the OTP and a $120 fee. Paying with cash only? You don't need one.", "when": "By the next working day after the option date. The outcome typically takes 10 working days and stays valid for 3 months, and you can't exercise the OTP until it's out.", "lease": "The value it sets forms the basis for your CPF use and the reference for your housing loan.", "doc": "hdb-request-for-value", "title": "Request for Value for a Resale Flat", "publisher": "HDB", "url": "https://www.hdb.gov.sg/buying-a-flat/resale-flats/process-for-buying-a-resale-flat/option-to-purchase/request-for-value"},
+  {"t": "Exercise the Option to Purchase", "a": "Once the Request for Value outcome is in and, for a bank loan, your In-Principle Approval has become a Letter of Offer, decide whether to buy. To go ahead, sign the OTP, return it to the sellers and pay the Option Exercise Fee. With the Option Fee, it must not exceed $5,000.", "when": "Within the 21-day Option Period. Use it wisely and don't rush.", "doc": "mynicehome-resale-guide", "title": "How to Buy a Resale HDB Flat", "publisher": "MyNiceHome (HDB)", "url": "https://www.mynicehome.gov.sg/get-started/hdb-resale-buying-guide/"},
+  {"t": "Submit the resale application", "a": "After you exercise the OTP, you and the sellers each submit your part of the resale application on My Flat Dashboard.", "when": "Once HDB has the complete application and all supporting documents from you and the sellers, it checks both sides' eligibility and accepts the application within 28 working days.", "doc": "cea-buying-hdb-flat", "title": "Buying an HDB flat (Buyer) - transacting on your own", "publisher": "CEA", "url": "https://www.cea.gov.sg/consumers/transacting-on-your-own/buying-an-hdb-flat/"},
+  {"t": "Endorse the documents and pay the fees", "a": "HDB prepares the resale documents. You and the sellers acknowledge and endorse them and pay the fees due, and HDB then grants approval for the sale.", "when": "The documents are ready about three weeks after HDB accepts the application.", "doc": "cea-buying-hdb-flat", "title": "Buying an HDB flat (Buyer) - transacting on your own", "publisher": "CEA", "url": "https://www.cea.gov.sg/consumers/transacting-on-your-own/buying-an-hdb-flat/"},
+  {"t": "Complete the purchase", "a": "Pay the part of the price that CPF and your loan don't cover, in cash by Cashier's Order and/or NETS, on or before the completion appointment. If you have an HDB loan, buy HDB fire insurance first. At the appointment, bring your identity cards and payment receipts, sign the mortgage if you have an HDB loan, and collect your keys.", "when": "Usually about 8 weeks after HDB accepts the resale application.", "doc": "mynicehome-resale-guide", "title": "How to Buy a Resale HDB Flat", "publisher": "MyNiceHome (HDB)", "url": "https://www.mynicehome.gov.sg/get-started/hdb-resale-buying-guide/"}
+];
+/* end TIMELINE */
 // Breadcrumb for an inner page: Home and any [path, name] pairs are links, the last item is the page you're on.
 function crumbs(...trail){
   const here = trail.pop();
@@ -3078,6 +3100,7 @@ function renderMore(){
     </div>
     <div class="list">
       <button data-sub="faq"><span>FAQ<small>Common questions, each with its official source</small></span>${ICON.chev}</button>
+      <button data-sub="timeline"><span>Buying timeline<small>The steps from HFE letter to keys, each with its official source</small></span>${ICON.chev}</button>
       <button data-sub="case"><span>Case study<small>One flat type, two towns, two leases, from real sales</small></span>${ICON.chev}</button>
       <button data-sub="privacy"><span>Privacy Policy<small>What happens to what you type or upload</small></span>${ICON.chev}</button>
       <button data-sub="terms"><span>Terms<small>Educational use, no advice, licences</small></span>${ICON.chev}</button>
@@ -3089,7 +3112,7 @@ function renderMore(){
   $('#homeBtn').onclick=()=>show('scrLanding');
 }
 function signOut(){closeSheet();RW.logout();}
-const SUBNAME={details:'Your details',size:'Text size',about:'About Us',method:'How it works',sources:'Sources and credits',privacy:'Privacy Policy',terms:'Terms',faq:'FAQ',case:'Case study'};
+const SUBNAME={details:'Your details',size:'Text size',about:'About Us',method:'How it works',sources:'Sources and credits',privacy:'Privacy Policy',terms:'Terms',faq:'FAQ',case:'Case study',timeline:'Buying timeline'};
 function renderSub(){
   const b=$('#subBody'), s=S.sub, top=crumbs(['more','More'],SUBNAME[s]);
   if(s==='details'){
@@ -3131,6 +3154,7 @@ function renderSub(){
     if(h){h.scrollIntoView(); h.focus({preventScroll:true});}
   }
   else if(s==='case') caseStudy(b,top);
+  else if(s==='timeline'){ b.innerHTML=top+timelineHtml(); }
 }
 function setSize(big){document.documentElement.classList.toggle('big',big);$$('[data-size]').forEach(x=>x.setAttribute('aria-pressed',(x.dataset.size==='b')===big));}
 $$('[data-size]').forEach(x=>x.onclick=()=>setSize(x.dataset.size==='b'));
@@ -3256,6 +3280,13 @@ function faqHtml(){
   ${FAQ.map((x,i)=>`<section aria-labelledby="faq${i}"><h2 id="faq${i}" tabindex="-1">${esc(x.q)}</h2><p>${esc(x.a)}</p>
     <p class="small">Source: <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.publisher)} · ${esc(x.title)}${NEWTAB}</a></p></section>`).join('')}
   <p class="small">Runway is a learning project, not financial advice. Confirm your position with CPF Board and your HDB eligibility letter.</p></div>`;
+}
+function timelineHtml(){
+  return `<div class="doctext"><h1>Buying timeline</h1>
+  <p>The steps to buy a resale flat, in order, from the official pages. Each step names the page it comes from. The lease check matters most before you agree a price.</p>
+  <ol class="tl">${TIMELINE.map((x,i)=>`<li><h2 id="tl${i}">${esc(x.t)}</h2><p>${esc(x.a)}</p>${x.when?`<p><b>When:</b> ${esc(x.when)}</p>`:''}${x.lease?`<p class="tl-lease"><b>Lease check:</b> ${esc(x.lease)}</p>`:''}
+    <p class="small">Source: <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.publisher)} · ${esc(x.title)}${NEWTAB}</a></p></li>`).join('')}</ol>
+  <p class="small">Runway is a learning project, not financial advice. HDB's My Flat Dashboard guides you through your own purchase step by step.</p></div>`;
 }
 const LEGAL_DATE='13 November 2026';
 function privacyHtml(){
