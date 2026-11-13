@@ -16,7 +16,7 @@ The interface in `runway_game/index.html` is the approved design hand-off, runni
 
 | Screen | What it does |
 |---|---|
-| **Home page** | Landing page, Ask Runway first: a question box (**Ask Runway** asks it on the Ask page) beside one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, Source Serif 4 and Plus Jakarta Sans, as set out in `DESIGN.md`. **Log in** in the navigation opens the reviewer login over the page. |
+| **Home page** | Landing page, Ask Runway first: a question box (**Ask Runway** asks it on the Ask page) beside one worked example that quotes the official document, the age-95 rule calculator, what a shorter lease costs by town, and the required notice. Green and beige palette, the device's system font (Anton only for the RUNWAY wordmark), as set out in `DESIGN.md`. **Log in** in the navigation opens the reviewer login over the page. |
 | **Setup** | Youngest buyer's age, rough CPF, first town. No names or NRIC. |
 | **Map** (use case 1) | Town Safari: every HDB block, MRT lines and the flats sold in Jul–Sep 2026. Tap a diamond for the verdict, runway bar, CPF you can use and cash you need. Keep, Why?, Next flat. |
 | **Shortlist** | Kept flats recalculated for your details, CSV download, and 26 town stamps with Wikimedia Commons photos. |

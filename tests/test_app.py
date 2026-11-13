@@ -265,10 +265,13 @@ def test_landing_town_cards_match_the_data():
 
 
 def test_landing_look_and_copy():
-    for text in ("Plus+Jakarta+Sans", 'data-photo="punggol.jpg"', 'data-photo="toapayoh.jpg"', "Less lease, less CPF:",
+    for text in ('data-photo="punggol.jpg"', 'data-photo="toapayoh.jpg"', "Less lease, less CPF:",
                  "what buyers need to know.", "Have more questions? Ask Runway.", "not from the AI"):
         assert text in GAME, text
-    for text in ("IBM Plex", "--rust", "Special:FilePath", "One flat, two buyers", "ordinary way"):
+    # the system font everywhere; Google Fonts loads only Anton, for the RUNWAY wordmark
+    assert re.findall(r'href="https://fonts\.googleapis\.com/css2\?([^"]*)"', GAME) == ["family=Anton&display=swap"]
+    for text in ("IBM Plex", "--rust", "Special:FilePath", "One flat, two buyers", "ordinary way", "Plus+Jakarta+Sans",
+                 "Plus Jakarta", "Source+Serif", "Source Serif"):
         assert text not in GAME, text
     assert "7a2e1d" not in GAME.lower()
 
