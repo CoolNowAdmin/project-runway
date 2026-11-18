@@ -125,7 +125,6 @@ runway/content.py      reviewer edits to page text and the FAQ, and uploaded Ask
 runway/store.py        lasting storage for those edits and for votes (Neon database, Cloudflare R2 files)
 runway/voicepack.py    Singapore voice pack for read-aloud (edge-tts)
 runway/config.py       settings (Streamlit secrets, then environment) and defaults
-runway/lease_data.py   lease premium by town from resale.parquet (analysis helper; only the tests call it)
 scripts/               build_dataset, refresh_data (monthly), fetch_town_photos, seed_users, to_corpus
 .github/workflows/     monthly data refresh: rebuilds the dataset and opens a pull request for a person to merge
 data/game/             towns, Jul-Sep 2026 sales, blocks, roads, MRT, amenities
@@ -143,7 +142,14 @@ python eval/run_eval.py   # retrieval, calculator, decline checks (+ LLM answers
 ```
 
 The CPF formula reproduces every official worked example: MND's May 2019 Annex B (age 25 with 55 / 65 / 75 years
-left gives 70% / 90% / 100%) and CPF Board's FAQ. The lease premium reproduces the proposal's Table 1 from the data.
+left gives 70% / 90% / 100%) and CPF Board's FAQ.
+
+The lease premium by town (`pct` in `data/game/map.json`) is the % change in price per sqm for one extra year of
+lease. Method, as in the proposal's Table 1: within one town and flat type, fit `log(price per sqm) = a + b * remaining
+lease` by least squares; `exp(b) - 1` is the premium. It is a market pattern, not a cause: it does not adjust for floor
+level, size, model or condition. The values in `map.json` came from the design hand-off and no script in this repo
+rebuilds them (`scripts/refresh_data.py` leaves them alone). `runway/lease_data.py` implemented the same method for the
+proposal's Table 1; it was removed because the app never called it, and the last commit that has it is `2f9f31b`.
 
 ## Data and licences
 
