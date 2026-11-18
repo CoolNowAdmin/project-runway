@@ -147,8 +147,9 @@ left gives 70% / 90% / 100%) and CPF Board's FAQ.
 The lease premium by town (`pct` in `data/game/map.json`) is the % change in price per sqm for one extra year of
 lease. Method, as in the proposal's Table 1: within one town and flat type, fit `log(price per sqm) = a + b * remaining
 lease` by least squares; `exp(b) - 1` is the premium. It is a market pattern, not a cause: it does not adjust for floor
-level, size, model or condition. The values in `map.json` are not rebuilt by `scripts/refresh_data.py`, and the code that
-fitted them was removed from the repo (`runway/lease_data.py`, last present in commit `2f9f31b`).
+level, size, model or condition. The values in `map.json` came from the design hand-off and no script in this repo
+rebuilds them (`scripts/refresh_data.py` leaves them alone). `runway/lease_data.py` implemented the same method for the
+proposal's Table 1; it was removed because the app never called it, and the last commit that has it is `2f9f31b`.
 
 ## Data and licences
 
