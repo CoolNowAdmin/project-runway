@@ -1,7 +1,7 @@
 """LLM calls: explain computed results and answer questions from retrieved passages.
 
 Design rule: the model explains, it never calculates. Every figure comes from
-runway.cpf_rules / runway.lease_data and is passed in as a fact. Explanations
+the calculators (runway.cpf_rules, runway.costs) and is passed in as a fact. Explanations
 that contain a number not in the facts are rejected and replaced with a plain
 template, so the model cannot slip in an invented figure.
 """

@@ -6,7 +6,7 @@ Usage:
 
 Steps: download (stdlib urllib only) -> scripts/build_dataset.py (data/resale.parquet, data/dataset_meta.json)
 -> rewrite the dataset's size and span in runway_game/index.html (landing stats, Sources, How it works).
-Trends and the lease premium are worked out from resale.parquet when the app runs, so they follow on their own.
+Trends are worked out from resale.parquet when the app runs, so they follow on their own.
 
 Not refreshed: data/game/map.json and data/game/features.json (the map's geocoded sales, blocks, roads, MRT,
 amenities and each town's lease effect). They came from the design hand-off without a script, so the map keeps
