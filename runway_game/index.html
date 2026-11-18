@@ -2553,7 +2553,7 @@ function renderOnb(){
       ${sliderHtml('aAge',"Youngest buyer's age",21,85,S.age)}
       <p class="small" id="aNeed"></p><button class="btn primary" id="nx">Next</button>`;
     const set=a=>{S.age=a;syncAvg();$('#aNeed').textContent=`You need ${needYrs()} of lease to use CPF fully.`;};
-    bindSlider('aAge',set); set(S.age); $('#onbBody #spdOpen').onclick=openSingpassDemo;
+    bindSlider('aAge',set); set(S.age); const spd=$('#onbBody #spdOpen'); if(spd) spd.onclick=openSingpassDemo;
   } else if(i===2){
     const opts=[50000,100000,150000,200000,300000];
     b.innerHTML = `${crumbs('Map')}${back}${dots(2)}<h1>About how much CPF do you have?</h1><p class="lead">Ordinary Account, all buyers together. A rough number is fine.</p>
@@ -2757,7 +2757,8 @@ const SPD_ITEMS=[
   {k:'marital',t:'Marital status',use:'Whether you buy as a couple or as a single.'},
   {k:'hdb',t:'HDB flat ownership history',use:'Whether you count as a first-timer.'},
   {k:'cit',t:'Citizenship',use:'Grant rules that depend on citizenship.'}];
-const spdCard=()=>`<div class="spdcard"><div><b>Skip the typing?</b><span class="small">Try the Singpass demo. It shows how Runway could fill in your age, CPF and income for you, with your consent. It is not connected to Singpass.</span></div><button type="button" class="btn ghost sm" id="spdOpen">Try the demo</button></div>`;
+// Reviewers only (logged in, reviewer version): the public site carries no demo wording. FULL() is the page's own reviewer check.
+const spdCard=()=>!FULL()?'':`<div class="spdcard"><div><b>Skip the typing?</b><span class="small">Try the Singpass demo. It shows how Runway could fill in your age, CPF and income for you, with your consent. It is not connected to Singpass.</span></div><button type="button" class="btn ghost sm" id="spdOpen">Try the demo</button></div>`;
 function spdAge(dob,today){
   const t=today||new Date(), b=new Date(dob+'T00:00:00');  // dob is "YYYY-MM-DD"
   let a=t.getFullYear()-b.getFullYear();
@@ -3324,7 +3325,7 @@ function renderSub(){
     // the average can't be below the youngest buyer, so its slider starts at the youngest buyer's age
     const avgSlider=()=>{$('#dVw').innerHTML=sliderHtml('dVwh','Average age of all buyers',S.age,85,S.avg);bindSlider('dVwh',a=>{S.avgSet=S.avg=a;upd();});};
     bindSlider('dAw',a=>{S.age=a;syncAvg();avgSlider();upd();}); avgSlider();
-    bindOa('dOa',upd); $('#subBody #spdOpen').onclick=openSingpassDemo;
+    bindOa('dOa',upd); const spd=$('#subBody #spdOpen'); if(spd) spd.onclick=openSingpassDemo;
   } else if(s==='size'){
     b.innerHTML=`${top}<h1>Text size</h1><p>Pick the size that is easiest to read. It lasts for this visit.</p>${sliderHtml('szW','Text size',14,24,textPx(),' px')}
       <p class="notice" style="font-size:inherit;color:var(--ink)">The flat has 55 lease years left. This is how text reads at this size.</p>`;
@@ -3719,7 +3720,7 @@ window.RWAPP={
       if(arg){ if(arg.age){ S.age=arg.age; S.ageSet=true; syncAvg(); S.dirty=true; } if(S.landTown) S.town=arg.town; S.match=arg.ft?{ft:arg.ft,max:Infinity}:null; needFit=true; }
     }
     if(target!=='map'||S.onbDone){ go(target,arg); return; } S.after={target,arg}; S.onb=1; show('scrOnb'); renderOnb(); },
-  setUser(user,role){ S.user=user; S.role=role||'brief'; if(!$('#scrSub').hidden) renderSub(); else if(!$('#scrMore').hidden) renderMore(); }
+  setUser(user,role){ S.user=user; S.role=role||'brief'; if(!$('#scrSub').hidden) renderSub(); else if(!$('#scrMore').hidden) renderMore(); else if(!$('#scrOnb').hidden) renderOnb(); }
 };
 if(RW.pendingEnter){ const p=RW.pendingEnter; RW.pendingEnter=null; RWAPP.enter(p.target,p.arg); } else show('scrLanding');
 }
