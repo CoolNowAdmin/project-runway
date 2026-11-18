@@ -1010,6 +1010,23 @@ details.more summary{font:700 .833rem var(--font-ui);color:var(--green);cursor:p
 .cmppick legend{padding:0;margin-bottom:8px}
 .cmppick label{display:flex;gap:12px;align-items:center;min-height:44px;padding:4px 14px;border-radius:var(--radius-chip);background:var(--beige-2);color:var(--ink);cursor:pointer}
 .cmppick input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--green)}
+/* Singpass demo (mock-up): the entry card on the age step and Your details, and the sheet's three steps */
+.spdcard{display:flex;gap:14px;align-items:center;justify-content:space-between;background:var(--beige-2);border-radius:16px;padding:14px 16px}
+.spdcard>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.spdcard .btn{flex:none}
+@media (max-width:520px){.spdcard{flex-direction:column;align-items:stretch}}
+.spd{gap:12px}
+.spd .demobar{margin:0;background:var(--beige-2);border-radius:var(--radius-chip);padding:10px 14px;font:400 .778rem/1.45 var(--font-ui);color:var(--ink)}
+.spd .who{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;width:100%;min-height:56px;padding:12px 16px;border:0;border-radius:var(--radius-chip);background:var(--beige-2);color:var(--ink);font:inherit;cursor:pointer;transition:transform 140ms var(--ease-out),background-color 140ms var(--ease-out)}
+.spd .who b{font:600 .944rem var(--font-ui)}
+.spd .who span{font:400 .778rem/1.45 var(--font-ui);color:var(--ink-2)}
+.spd .who:active{background:var(--fill-press);transform:scale(.97)}
+html[data-input="key"] .spd .who{transition:none}
+@media (hover:hover) and (pointer:fine){.spd .who:hover{background:var(--fill-press)}}
+.spd .cmppick label>span{display:flex;flex-direction:column;gap:2px}
+.spd .cmppick label small{color:var(--ink-2);font:400 .778rem/1.45 var(--font-ui)}
+.spd .row{display:flex;gap:10px;flex-wrap:wrap}
+.spd .row .btn{flex:1 1 160px}
 .cmptbl{font-variant-numeric:tabular-nums}
 .cmptbl caption{text-align:left;font:600 .778rem/1.45 var(--font-ui);color:var(--ink-2);padding:0 4px 8px}
 .cmptbl thead td{background:var(--beige-2);border-bottom:1px solid var(--line)}
@@ -2532,11 +2549,11 @@ function bindOa(id, after){
 function renderOnb(){
   const b=$('#onbBody'), i=S.onb, back=`<button class="back" type="button" id="onbBack">${ICON.back}Back</button>`;
   if(i===1){
-    b.innerHTML = `${crumbs('Map')}${back}${dots(1)}<h1>How old is the youngest buyer?</h1><p class="lead">This decides how much lease you need.</p>
+    b.innerHTML = `${crumbs('Map')}${back}${dots(1)}<h1>How old is the youngest buyer?</h1><p class="lead">This decides how much lease you need.</p>${spdCard()}
       ${sliderHtml('aAge',"Youngest buyer's age",21,85,S.age)}
       <p class="small" id="aNeed"></p><button class="btn primary" id="nx">Next</button>`;
     const set=a=>{S.age=a;syncAvg();$('#aNeed').textContent=`You need ${needYrs()} of lease to use CPF fully.`;};
-    bindSlider('aAge',set); set(S.age);
+    bindSlider('aAge',set); set(S.age); const spd=$('#onbBody #spdOpen'); if(spd) spd.onclick=openSingpassDemo;
   } else if(i===2){
     const opts=[50000,100000,150000,200000,300000];
     b.innerHTML = `${crumbs('Map')}${back}${dots(2)}<h1>About how much CPF do you have?</h1><p class="lead">Ordinary Account, all buyers together. A rough number is fine.</p>
@@ -2726,6 +2743,85 @@ function openBlock(g){
 }
 $('#chgTown').onclick=()=>openSheet(`<div class="pad"><h2 style="font-size:1.6rem">Choose a town</h2><p class="small">Diamonds show how much lease length changes prices in each town.</p>${townListHtml()}</div>`,()=>bindTownList(t=>{S.town=t;needFit=true;closeSheet();drawMap();}));
 $('#ageChip').onclick=()=>openSheet(ageSheetHtml(),bindAgeSheet);
+/* ---------- Singpass demo (a mock-up) ----------
+   Not connected to Singpass. Three made-up people stand in for what Singpass's Myinfo could return after the user
+   agrees, to show how Runway could fill in Your details instead of the user typing them. Nothing is sent or stored. */
+const SPD=[
+  {id:'a',label:'Demo person A',blurb:'Married, early in a career',dob:'1998-03-14',marital:'married',cit:'Singapore Citizen',oa:38500,inc:5200,hdb:'never'},
+  {id:'b',label:'Demo person B',blurb:'Single, saving for a first flat',dob:'1990-08-02',marital:'single',cit:'Singapore Citizen',oa:142000,inc:7400,hdb:'never'},
+  {id:'c',label:'Demo person C',blurb:'Married, upgrading',dob:'1982-11-27',marital:'married',cit:'Singapore Citizen',oa:186000,inc:9800,hdb:'owned'}];
+const SPD_ITEMS=[
+  {k:'dob',t:'Date of birth',use:'Your age. Runway keeps the age, not the date.'},
+  {k:'oa',t:'CPF Ordinary Account balance',use:'How much CPF you can put towards a flat.'},
+  {k:'inc',t:'Income, from your latest tax assessment',use:'The HDB loan income cap and grants, as a monthly figure.'},
+  {k:'marital',t:'Marital status',use:'Whether you buy as a couple or as a single.'},
+  {k:'hdb',t:'HDB flat ownership history',use:'Whether you count as a first-timer.'},
+  {k:'cit',t:'Citizenship',use:'Grant rules that depend on citizenship.'}];
+// Reviewers only (logged in, reviewer version): the public site carries no demo wording. FULL() is the page's own reviewer check.
+const spdCard=()=>!FULL()?'':`<div class="spdcard"><div><b>Skip the typing?</b><span class="small">Try the Singpass demo. It shows how Runway could fill in your age, CPF and income for you, with your consent. It is not connected to Singpass.</span></div><button type="button" class="btn ghost sm" id="spdOpen">Try the demo</button></div>`;
+function spdAge(dob,today){
+  const t=today||new Date(), b=new Date(dob+'T00:00:00');  // dob is "YYYY-MM-DD"
+  let a=t.getFullYear()-b.getFullYear();
+  if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate())) a--;
+  return a;
+}
+// What Runway would take from the demo person, for the ticked items only: the fields to set and the tiles to show.
+function spdFill(p,keys,today){
+  const set={}, got=[], age=spdAge(p.dob,today);
+  if(keys.has('dob')){set.age=age;got.push(['Youngest buyer',age+' years old']);}
+  if(keys.has('oa')){set.oa=p.oa;set.oaSet=true;got.push(['CPF Ordinary Account',exact(p.oa)]);}
+  if(keys.has('inc')){set.inc=p.inc;got.push(['Income a month',exact(p.inc)]);}
+  if(keys.has('marital')){const hh=p.marital==='married'?'family':age>=35?'single':'';set.hh=hh;
+    got.push(['Buying as',hh==='family'?'A couple or family':hh==='single'?'A single, 35 or over':'Not given (a single must be 35 or over)']);}
+  if(keys.has('hdb')){set.first=p.hdb==='never'?'first':'no';got.push(['Housing history',p.hdb==='never'?'First-timer':'Has owned an HDB flat before']);}
+  if(keys.has('cit')){set.cit='sc';got.push(['Citizenship',p.cit]);}
+  return {set,got};
+}
+function spdApply(p,keys){
+  const {set,got}=spdFill(p,keys);
+  Object.assign(S,set);
+  if('age' in set){S.ageSet=true;syncAvg();}
+  S.spd=got.length?p.label:null; S.dirty=true; sideProf();
+  return got;
+}
+function spdMarkup(name,person,keys,got){
+  const bar='<p class="demobar"><b>Demonstration only.</b> This is not Singpass and is not connected to it. The people shown are made up, and nothing here is sent or stored.</p>';
+  if(name==='pick') return `<h2 style="font-size:1.6rem">Singpass demo</h2>${bar}
+    <p class="small">Pick a made-up person to sign in as. A real version would ask you to approve this in the Singpass app instead.</p>
+    ${SPD.map(p=>`<button type="button" class="who" data-p="${p.id}"><b>${p.label}</b><span>${p.blurb} · born ${new Date(p.dob+'T00:00:00').toLocaleDateString('en-SG',{month:'long',year:'numeric'})} · ${p.cit}</span></button>`).join('')}`;
+  if(name==='consent') return `<h2 style="font-size:1.6rem">Share your details with Runway?</h2>${bar}
+    <p class="small"><b>${person.label}</b> would be asked: Runway wants to see the details below. Untick anything you would rather type yourself.</p>
+    <fieldset class="cmppick"><legend class="small">What Runway would receive</legend>${SPD_ITEMS.map(i=>`<label><input type="checkbox" data-k="${i.k}"${keys.has(i.k)?' checked':''}><span><b>${i.t}</b><small>${i.use}</small></span></label>`).join('')}</fieldset>
+    <p class="small">Runway would not ask for your name, NRIC, address, phone number or email.</p>
+    <div class="row"><button type="button" class="btn primary" id="spdGo">Share selected details</button><button type="button" class="btn ghost" id="spdBack">Back</button></div>`;
+  return `<h2 style="font-size:1.6rem">${got.length?'Filled in for you':'Nothing was shared'}</h2>${bar}
+    ${got.length?`<div class="tiles">${got.map(([k,v])=>`<div class="tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
+    <p class="small">${person.marital==='married'?'The income is only '+person.label+'\'s. If you buy together, add your partner\'s income and age on Your details. ':''}Anything here can be changed on Your details. It stays in this browser tab and goes nowhere else.</p>`
+    :'<p class="small">You unticked everything, so nothing was filled in. You can still type your details yourself.</p>'}
+    <button type="button" class="btn primary" id="spdDone">Continue</button>`;
+}
+function openSingpassDemo(){
+  let person=null; const keys=new Set(SPD_ITEMS.map(i=>i.k));
+  const bind=name=>{
+    if(name==='pick') $$('#spdBody [data-p]').forEach(x=>x.onclick=()=>{person=SPD.find(p=>p.id===x.dataset.p);go('consent');});
+    if(name==='consent'){
+      $$('#spdBody [data-k]').forEach(x=>x.onchange=()=>{x.checked?keys.add(x.dataset.k):keys.delete(x.dataset.k);});
+      $('#spdBack').onclick=()=>go('pick');
+      $('#spdGo').onclick=()=>go('done',spdApply(person,keys));
+    }
+    if(name==='done') $('#spdDone').onclick=()=>{
+      closeSheet();
+      if(!$('#scrOnb').hidden){ if(S.onb<3&&keys.has('dob')&&keys.has('oa')) S.onb=3; renderOnb(); $('#scrOnb').scrollTop=0; }
+      else if(S.sub==='details'&&!$('#scrSub').hidden) renderSub();
+      toast('Details filled in from the Singpass demo');
+    };
+  };
+  const go=(name,got)=>{
+    $('#spdBody').innerHTML=spdMarkup(name,person,keys,got); bind(name);
+    const h=$('#spdBody h2'); h.id='sheetTitle'; h.tabIndex=-1; h.focus({preventScroll:true});
+  };
+  openSheet(`<div class="pad fsheet spd" id="spdBody">${spdMarkup('pick')}</div>`,()=>bind('pick'));
+}
 function ageSheetHtml(){return `<div class="pad"><h2 style="font-size:1.6rem">Youngest buyer's age</h2>${sliderHtml('sAge',"Youngest buyer's age",21,85,S.age)}<p class="small" id="sNeed"></p><button class="btn primary" data-closesheet>Done</button></div>`;}
 function bindAgeSheet(){const set=a=>{S.age=a;syncAvg();$('#sNeed').textContent=`Needs ${needYrs()} of lease for full CPF.`;S.dirty=true;};bindSlider('sAge',set);set(S.age);}
 
@@ -3205,6 +3301,7 @@ function renderSub(){
   const b=$('#subBody'), s=S.sub, top=crumbs(['more','More'],SUBNAME[s]);
   if(s==='details'){
     b.innerHTML=`${top}<h1>Your details</h1>
+      ${spdCard()}${S.spd?`<p class="small">Filled in from the Singpass demo (${S.spd}). Reset my details clears it.</p>`:''}
       <span class="label">Youngest buyer</span>${sliderHtml('dAw',"Youngest buyer's age",21,85,S.age)}
       <span class="label">Average age of all buyers</span><div id="dVw"></div>
       <p class="small">Average age decides how long your HDB loan can be.</p>
@@ -3223,12 +3320,12 @@ function renderSub(){
       <p class="small">Sets the youngest buyer back to 30, the average age back to following it, CPF back to Not sure, and clears the grant details. Your shortlist, town stamps, chat and map town stay as they are.</p>`;
     $('#dInc').oninput=e=>{const v=e.target.value.trim();S.inc=v===''||!(+v>=0)?null:+v;S.dirty=true;};
     $$('#dHh,#dFirst,#dCit,#dPar').forEach(x=>x.onchange=()=>{S[x.dataset.k]=x.value;S.dirty=true;});
-    $('#dReset').onclick=()=>{S.age=30;S.avgSet=0;S.ageSet=false;syncAvg();S.oa=100000;S.oaSet=false;Object.assign(S,{inc:null,hh:'',first:'',cit:'sc',par:'no'});S.dirty=true;sideProf();renderSub();$('#dReset').focus();toast('Your details are back to the defaults');};
+    $('#dReset').onclick=()=>{S.age=30;S.avgSet=0;S.ageSet=false;syncAvg();S.oa=100000;S.oaSet=false;Object.assign(S,{inc:null,hh:'',first:'',cit:'sc',par:'no',spd:null});S.dirty=true;sideProf();renderSub();$('#dReset').focus();toast('Your details are back to the defaults');};
     const upd=()=>{S.dirty=true;sideProf();};
     // the average can't be below the youngest buyer, so its slider starts at the youngest buyer's age
     const avgSlider=()=>{$('#dVw').innerHTML=sliderHtml('dVwh','Average age of all buyers',S.age,85,S.avg);bindSlider('dVwh',a=>{S.avgSet=S.avg=a;upd();});};
     bindSlider('dAw',a=>{S.age=a;syncAvg();avgSlider();upd();}); avgSlider();
-    bindOa('dOa',upd);
+    bindOa('dOa',upd); const spd=$('#subBody #spdOpen'); if(spd) spd.onclick=openSingpassDemo;
   } else if(s==='size'){
     b.innerHTML=`${top}<h1>Text size</h1><p>Pick the size that is easiest to read. It lasts for this visit.</p>${sliderHtml('szW','Text size',14,24,textPx(),' px')}
       <p class="notice" style="font-size:inherit;color:var(--ink)">The flat has 55 lease years left. This is how text reads at this size.</p>`;
@@ -3623,7 +3720,7 @@ window.RWAPP={
       if(arg){ if(arg.age){ S.age=arg.age; S.ageSet=true; syncAvg(); S.dirty=true; } if(S.landTown) S.town=arg.town; S.match=arg.ft?{ft:arg.ft,max:Infinity}:null; needFit=true; }
     }
     if(target!=='map'||S.onbDone){ go(target,arg); return; } S.after={target,arg}; S.onb=1; show('scrOnb'); renderOnb(); },
-  setUser(user,role){ S.user=user; S.role=role||'brief'; if(!$('#scrSub').hidden) renderSub(); else if(!$('#scrMore').hidden) renderMore(); }
+  setUser(user,role){ S.user=user; S.role=role||'brief'; if(!$('#scrSub').hidden) renderSub(); else if(!$('#scrMore').hidden) renderMore(); else if(!$('#scrOnb').hidden) renderOnb(); }
 };
 if(RW.pendingEnter){ const p=RW.pendingEnter; RW.pendingEnter=null; RWAPP.enter(p.target,p.arg); } else show('scrLanding');
 }
