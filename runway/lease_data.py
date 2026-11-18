@@ -108,18 +108,3 @@ def premiums_by_town(df: pd.DataFrame, flat_type: str, since: str, towns: list[s
         if premium is not None:
             out.append(premium)
     return sorted(out, key=lambda p: p.pct_per_year)
-
-
-def premium_table(premiums: list[TownPremium]) -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "Town": [p.town for p in premiums],
-            "Extra price per year of lease (%)": [round(p.pct_per_year, 2) for p in premiums],
-            "95% range (%)": [f"{p.ci_low:.2f} to {p.ci_high:.2f}" for p in premiums],
-            "Sales": [p.sales for p in premiums],
-            "Leases sold (years)": [f"{p.lease_min:.0f}-{p.lease_max:.0f}" for p in premiums],
-            "Median $/sqm": [round(p.median_psm) for p in premiums],
-            "Caveat": [p.note or "-" for p in premiums],
-        }
-    )
-

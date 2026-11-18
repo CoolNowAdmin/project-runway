@@ -120,10 +120,18 @@ runway/rag.py          chunking and BM25 keyword search
 runway/llm.py          prompts, question screening, number guard, Claude calls (Anthropic API)
 runway/auth.py         password hashing and checks
 runway/game_data.py    map data and town photos; town list and one photo at a time for the home page
+runway/trends.py       price trends by town and by lease left, built from resale.parquet (Trends tab)
+runway/content.py      reviewer edits to page text and the FAQ, and uploaded Ask documents
+runway/store.py        lasting storage for those edits and for votes (Neon database, Cloudflare R2 files)
+runway/voicepack.py    Singapore voice pack for read-aloud (edge-tts)
+runway/config.py       settings (Streamlit secrets, then environment) and defaults
+runway/lease_data.py   lease premium by town from resale.parquet (analysis helper; only the tests call it)
+scripts/               build_dataset, refresh_data (monthly), fetch_town_photos, seed_users, to_corpus
+.github/workflows/     monthly data refresh: rebuilds the dataset and opens a pull request for a person to merge
 data/game/             towns, Jul-Sep 2026 sales, blocks, roads, MRT, amenities
 data/photos/           26 town photos + credits (scripts/fetch_town_photos.py)
 data/corpus/           32 official documents with source URLs
-data/resale.parquet    986,090 HDB resale transactions (offline analysis)
+data/resale.parquet    HDB resale transactions since 1990 (Trends and the price check; refreshed monthly)
 eval/, tests/          evaluation questions and the pytest suite
 ```
 
